@@ -1,0 +1,2950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#170d20">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>🔥 JEE Battle Royale Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-color: #0a0710;
+    --bg-glow: #2a0f3a;
+    --card-bg: #130b1a;
+    --panel-bg: #170d20;
+    --gold: #ff6a00;
+    --gold-bright: #ffcf3d;
+    --xp: #ff3d7d;
+    --phys: #22d3ee;
+    --chem: #39ff88;
+    --maths: #c77dff;
+    --danger: #ff1a5e;
+    --text-main: #f3ecff;
+    --text-muted: #9a83b0;
+    --border: #3a2452;
+    --locked: #241a33;
+    --bronze: #cd7f32;
+    --silver: #c9ccd1;
+    --lb: #ffd93d;
+  }
+  html { font-size: 14px; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,106,0,0.03) 0px, rgba(255,106,0,0.03) 1px, transparent 1px, transparent 3px),
+      radial-gradient(circle at 12% 0%, rgba(34,211,238,0.10) 0%, transparent 40%),
+      radial-gradient(circle at 88% 10%, rgba(199,125,255,0.12) 0%, transparent 42%),
+      radial-gradient(circle at 50% 90%, rgba(57,255,136,0.08) 0%, transparent 45%),
+      radial-gradient(circle at 15% 0%, var(--bg-glow) 0%, transparent 45%),
+      var(--bg-color);
+    background-attachment: fixed;
+    color: var(--text-main);
+    margin: 0;
+    padding: 20px;
+  }
+  .container { max-width: 1000px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 18px; }
+  h1 {
+    font-family: 'Orbitron', sans-serif; font-weight: 800; letter-spacing: 2px;
+    margin-bottom: 4px; font-size: 1.6rem; text-transform: uppercase;
+    background: linear-gradient(90deg, var(--xp), var(--gold-bright) 35%, var(--chem) 65%, var(--phys) 85%, var(--maths));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 10px rgba(255,106,0,0.45)) drop-shadow(0 0 16px rgba(199,125,255,0.3));
+  }
+  p { color: var(--text-muted); margin-top: 0; }
+  .save-status { font-size: 0.8rem; color: var(--gold); min-height: 16px; text-align: center; margin-bottom: 10px; font-weight: 600; }
+
+  /* Player HUD */
+  .hud {
+    background: linear-gradient(135deg, var(--panel-bg), #060a12);
+    border: 1px solid var(--border); border-radius: 14px; padding: 14px 20px; margin-bottom: 18px;
+    box-shadow: 0 0 0 1px rgba(255,106,0,0.06), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  .hud-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .hud-level {
+    font-family: 'Orbitron', sans-serif; font-weight: 800; color: var(--gold-bright); font-size: 1.05rem;
+    text-shadow: 0 0 12px rgba(255,106,0,0.4);
+  }
+  .hud-xp-label { font-size: 0.78rem; color: var(--text-muted); }
+  .hud-bar-track {
+    background: #040609; border: 1px solid var(--border); border-radius: 999px; height: 16px;
+    width: 100%; overflow: hidden; position: relative;
+  }
+  .hud-bar-fill {
+    height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--xp), var(--gold-bright) 33%, var(--chem) 66%, var(--phys));
+    box-shadow: 0 0 14px rgba(255,61,125,0.5);
+    transition: width 0.5s ease-in-out;
+  }
+  .hud-streak-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; font-size: 0.8rem; }
+  .hud-streak-row #hud-streak { color: var(--gold-bright); font-weight: 700; font-family: 'Orbitron', sans-serif; font-size: 0.8rem; }
+  .hud-streak-row #hud-streak-best { color: var(--text-muted); }
+
+  .hud-present-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; flex-wrap: wrap; }
+  .present-btn { padding: 7px 16px; font-size: 0.76rem; }
+  .present-btn.present-done {
+    background: linear-gradient(135deg, var(--chem), var(--phys)); color: #04060a;
+    cursor: default; opacity: 0.95; box-shadow: none;
+  }
+  #present-count { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
+
+  .radar-item {
+    display: flex; align-items: center; gap: 10px; background: #040609; border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; font-size: 0.82rem;
+  }
+  .radar-rank { font-family: 'Orbitron', sans-serif; font-weight: 800; color: var(--gold-bright); flex-shrink: 0; width: 28px; }
+  .radar-name { flex: 1; font-weight: 600; min-width: 0; }
+  .radar-reason { color: var(--text-muted); font-size: 0.74rem; white-space: nowrap; }
+  .radar-empty { color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 14px; }
+  @media (max-width: 520px) {
+    .radar-item { flex-wrap: wrap; }
+    .radar-reason { white-space: normal; width: 100%; padding-left: 38px; }
+  }
+
+  /* Danger Zone (Mains only) */
+  .danger-zone-panel {
+    background: linear-gradient(160deg, #1a0710, #060a12);
+    border: 1px solid var(--danger); border-radius: 12px; padding: 18px 20px; margin-bottom: 24px;
+    box-shadow: 0 0 18px rgba(255,26,94,0.18);
+  }
+  .danger-zone-panel h2 {
+    margin: 0 0 6px 0; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; color: var(--danger);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .radar-item.danger-item { border-color: var(--danger); background: rgba(255,26,94,0.07); }
+  .radar-item.danger-item .radar-rank { color: var(--danger); }
+  .radar-suggestion { display: block; font-size: 0.72rem; color: var(--danger); margin-top: 3px; }
+
+  /* Subject balance nudge */
+  .balance-nudge {
+    display: none; align-items: center; gap: 10px; background: rgba(255,106,0,0.08);
+    border: 1px solid var(--gold); border-radius: 10px; padding: 10px 16px; margin-bottom: 16px;
+    font-size: 0.8rem; color: var(--gold-bright);
+  }
+  .balance-nudge.show { display: flex; }
+  .balance-nudge .icon { font-size: 1.1rem; flex-shrink: 0; }
+
+  /* Mock trend chart */
+  .trend-chart-wrap {
+    background: linear-gradient(160deg, var(--card-bg), #060a12);
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 24px;
+  }
+  .trend-chart-wrap h2 { margin: 0 0 4px 0; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; color: var(--gold); }
+  .trend-chart-empty { color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 20px; }
+  .trend-svg { width: 100%; height: auto; display: block; }
+  .trend-point { fill: var(--gold-bright); }
+  .trend-point:hover { fill: var(--xp); }
+  .trend-tooltip { font-size: 9px; fill: var(--text-muted); font-family: 'Share Tech Mono', monospace; }
+
+  .util-bar {
+    display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .util-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(19,11,26,0.6); backdrop-filter: blur(6px);
+    border: 1px solid var(--border); color: var(--text-main);
+    padding: 8px 15px; border-radius: 999px; cursor: pointer;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.3px;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .util-btn .util-icon { font-size: 0.9rem; line-height: 1; opacity: 0.9; }
+  .util-btn:hover { transform: translateY(-1px); background: rgba(19,11,26,0.9); }
+  .util-btn:active { transform: translateY(0); }
+  .util-btn-cyan { border-color: rgba(34,211,238,0.4); color: var(--phys); }
+  .util-btn-cyan:hover { border-color: var(--phys); box-shadow: 0 0 14px rgba(34,211,238,0.35); }
+  .util-btn-violet { border-color: rgba(199,125,255,0.4); color: var(--maths); }
+  .util-btn-violet:hover { border-color: var(--maths); box-shadow: 0 0 14px rgba(199,125,255,0.35); }
+  .util-btn-report {
+    border: none; color: #04060a;
+    background: linear-gradient(135deg, var(--phys), var(--maths));
+    box-shadow: 0 2px 12px rgba(199,125,255,0.3);
+  }
+  .util-btn-report:hover { box-shadow: 0 4px 18px rgba(199,125,255,0.5); filter: brightness(1.06); }
+
+  .nav-toggle-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, var(--panel-bg), #060a12);
+    border: 1px solid var(--border); color: var(--gold-bright);
+    padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    font-family: 'Orbitron', sans-serif; font-size: 0.8rem; letter-spacing: 0.5px;
+    margin-bottom: 18px; transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .nav-toggle-btn:hover { border-color: var(--gold); box-shadow: 0 0 14px rgba(255,106,0,0.3); }
+  .nav-toggle-btn .bars { font-size: 0.95rem; }
+
+  .hamburger-fab {
+    position: fixed; top: 18px; left: 18px; z-index: 210;
+    width: 46px; height: 46px; border-radius: 50%;
+    background: linear-gradient(155deg, var(--panel-bg), #060a12);
+    border: 1px solid var(--border); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.45); transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  .hamburger-fab:hover { border-color: var(--gold); box-shadow: 0 0 16px rgba(255,106,0,0.4); transform: translateY(-1px); }
+  .hamburger-fab span {
+    display: block; width: 20px; height: 2px; border-radius: 2px;
+    background: var(--gold-bright); transition: transform 0.25s ease, opacity 0.2s ease;
+  }
+  .hamburger-fab.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .hamburger-fab.open span:nth-child(2) { opacity: 0; }
+  .hamburger-fab.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  .nav-overlay {
+    position: fixed; inset: 0; background: rgba(3,3,9,0.65); backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 190;
+  }
+  .nav-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .nav-panel {
+    position: fixed; top: 0; left: 0; height: 100vh; width: 270px; max-width: 82vw;
+    background: linear-gradient(165deg, var(--panel-bg), #04060c);
+    border-right: 1px solid var(--border); box-shadow: 8px 0 30px rgba(0,0,0,0.5);
+    transform: translateX(-100%); transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+    z-index: 200; display: flex; flex-direction: column; padding: 18px 14px;
+    overflow-y: auto;
+  }
+  .nav-panel.open { transform: translateX(0); }
+  .nav-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .nav-panel-header h2 {
+    font-family: 'Orbitron', sans-serif; font-size: 0.95rem; color: var(--gold-bright); margin: 0;
+  }
+  .nav-close-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
+  }
+  .nav-close-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .nav-panel .tab-btn {
+    background: transparent; border: 1px solid transparent; color: var(--text-muted);
+    text-align: left; width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border-radius: 10px; margin-bottom: 4px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.3px;
+    cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .nav-panel .tab-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+  .nav-panel .tab-btn.active {
+    background: linear-gradient(135deg, rgba(255,106,0,0.18), rgba(255,106,0,0.05));
+    border-color: var(--gold); color: var(--gold-bright);
+  }
+  .nav-panel .tab-qcount { margin-left: auto; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .subject-summary {
+    background: linear-gradient(135deg, var(--panel-bg), #060a12);
+    border: 1px solid var(--border); border-left: 4px solid var(--accent, var(--gold));
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
+  }
+  .subject-summary.physics-theme { --accent: var(--phys); }
+  .subject-summary.chem-theme { --accent: var(--chem); }
+  .subject-summary.maths-theme { --accent: var(--maths); }
+  .subject-summary h2 {
+    margin: 0 0 10px 0; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; color: var(--accent, var(--gold));
+    display: flex; align-items: center; gap: 8px;
+  }
+  .subject-summary .progress-bar { background: var(--accent, var(--gold)); box-shadow: 0 0 10px var(--accent, var(--gold)); }
+  .subject-summary .progress-text { color: var(--accent, var(--gold)); }
+
+  .chapter-card {
+    background: linear-gradient(160deg, var(--card-bg), #060a12);
+    border: 1px solid var(--locked); border-radius: 12px;
+    padding: 18px; margin-bottom: 16px; position: relative;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .chapter-card.tier-bronze { border-color: var(--bronze); }
+  .chapter-card.tier-silver { border-color: var(--silver); }
+  .chapter-card.tier-gold { border-color: var(--gold); box-shadow: 0 0 18px rgba(255,106,0,0.35); }
+
+  .quest-badge {
+    font-family: 'Orbitron', sans-serif; font-size: 0.68rem; font-weight: 700; color: var(--bg-color);
+    background: var(--gold); border-radius: 999px; padding: 2px 9px; margin-right: 8px; flex-shrink: 0;
+  }
+  .chapter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+  .chapter-title-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; min-width: 0; }
+  .chapter-title { font-size: 1rem; font-weight: 700; margin: 0; }
+  .collapse-toggle {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s ease;
+  }
+  .chapter-card.collapsed .collapse-toggle { transform: rotate(-90deg); }
+  .chapter-card.collapsed .checklist { display: none; }
+  .chapter-card.collapsed { padding-bottom: 14px; }
+  .progress-container { background-color: #040609; border: 1px solid var(--border); border-radius: 999px; height: 10px; width: 100%; overflow: hidden; margin-bottom: 12px; }
+  .progress-bar { background-color: var(--gold); height: 100%; width: 0%; transition: width 0.4s ease-in-out; }
+  .progress-text { font-size: 0.85rem; font-weight: bold; color: var(--gold); white-space: nowrap; }
+
+  .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .check-item {
+    display: flex; align-items: center; background: #040609; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--border); cursor: pointer; user-select: none; font-size: 0.78rem;
+    transition: all 0.15s;
+  }
+  .check-item input { margin-right: 8px; transform: scale(1.05); cursor: pointer; accent-color: var(--gold); }
+  .check-item.checked { border-color: var(--gold); background-color: rgba(255,106,0,0.08); color: var(--gold-bright); }
+
+  /* Test log */
+  .log-section {
+    background: linear-gradient(160deg, var(--card-bg), #060a12);
+    border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 24px;
+  }
+  .log-section h2 { margin-top: 0; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; color: var(--gold); }
+  .add-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .add-form input, .add-form select {
+    background: #040609; border: 1px solid var(--border); color: var(--text-main);
+    padding: 8px; border-radius: 6px; font-size: 0.8rem; width: 100%;
+  }
+  .add-btn {
+    background: linear-gradient(135deg, var(--gold-bright), var(--gold)); color: #03040a; border: none; padding: 9px 16px;
+    border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 0.82rem; font-family: 'Orbitron', sans-serif;
+    box-shadow: 0 2px 10px rgba(255,106,0,0.3);
+  }
+  .add-btn:hover { filter: brightness(1.08); }
+  table.test-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  table.test-table th { text-align: left; color: var(--text-muted); border-bottom: 1px solid var(--border); padding: 8px 6px; font-family: 'Orbitron', sans-serif; font-weight: 600; }
+  table.test-table td { padding: 8px 6px; border-bottom: 1px solid #3d1f0d; }
+  .del-btn { background: none; border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; cursor: pointer; padding: 4px 8px; font-size: 0.75rem; }
+  .del-btn:hover { background: var(--danger); color: white; }
+  .empty-row td { color: var(--text-muted); text-align: center; padding: 14px; }
+  .score-good { color: var(--chem); font-weight: 700; }
+  .score-bad { color: var(--danger); font-weight: 700; }
+
+  /* Quest complete toast */
+  .quest-toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
+    background: linear-gradient(135deg, var(--gold-bright), var(--gold)); color: #03040a;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 0.9rem;
+    padding: 12px 22px; border-radius: 999px; box-shadow: 0 8px 24px rgba(255,106,0,0.5);
+    opacity: 0; transition: all 0.4s ease; pointer-events: none; z-index: 999; white-space: nowrap;
+  }
+  .quest-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Achievements */
+  .achievements-summary { text-align: center; margin-bottom: 20px; color: var(--text-muted); font-size: 0.9rem; }
+  .achievements-summary span { color: var(--gold-bright); font-weight: 700; }
+  .achievements-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .achievement-card {
+    background: linear-gradient(160deg, var(--card-bg), #060a12);
+    border: 1px solid var(--locked); border-radius: 12px; padding: 16px; text-align: center;
+    filter: grayscale(1) brightness(0.7); opacity: 0.55; transition: all 0.3s ease;
+  }
+  .achievement-card.unlocked {
+    border-color: var(--gold); box-shadow: 0 0 18px rgba(255,106,0,0.35);
+    filter: none; opacity: 1;
+  }
+  .achievement-icon { font-size: 2rem; margin-bottom: 8px; }
+  .achievement-title { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--gold-bright); margin-bottom: 4px; }
+  .achievement-desc { font-size: 0.76rem; color: var(--text-muted); }
+  .achievement-card.unlocked .achievement-desc { color: #ffd9b3; }
+
+  /* Level-Up Guide */
+  .levelup-guide {
+    background: linear-gradient(160deg, var(--panel-bg), #060a12);
+    border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 24px;
+  }
+  .levelup-guide h2 { margin: 0 0 14px 0; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; color: var(--gold); }
+  .levelup-stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; font-size: 0.85rem; }
+  .levelup-stat-row .label { color: var(--text-muted); }
+  .levelup-stat-row .value { color: var(--gold-bright); font-weight: 700; }
+  .levelup-maxed { text-align: center; color: var(--gold-bright); font-family: 'Orbitron', sans-serif; font-weight: 700; padding: 6px 0; }
+  .quickwins-title { margin-top: 16px; margin-bottom: 8px; font-size: 0.82rem; color: var(--text-muted); font-family: 'Orbitron', sans-serif; }
+  .quickwin-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #040609; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; margin-bottom: 6px; font-size: 0.82rem;
+  }
+  .quickwin-item .remaining { color: var(--gold-bright); font-weight: 700; white-space: nowrap; margin-left: 10px; }
+
+  /* Subject completion summary */
+  .completion-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;
+    margin-bottom: 18px;
+  }
+  .completion-card {
+    background: linear-gradient(135deg, var(--panel-bg), #060a12);
+    border: 1px solid var(--border); border-left: 3px solid var(--accent, var(--gold));
+    border-radius: 10px; padding: 10px 14px; text-align: center;
+  }
+  .completion-card .c-label {
+    font-family: 'Orbitron', sans-serif; font-size: 0.75rem; color: var(--accent, var(--gold));
+    display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px;
+  }
+  .completion-card .c-fraction { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
+  .completion-card .c-fraction span { color: var(--accent, var(--gold)); }
+  .completion-card.physics-theme { --accent: var(--phys); }
+  .completion-card.chem-theme { --accent: var(--chem); }
+  .completion-card.maths-theme { --accent: var(--maths); }
+  .completion-card.total-theme { --accent: var(--gold-bright); }
+
+  /* Daily Questions summary row */
+  .daily-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  /* Subject Story panel (front page) */
+  .story-panel {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;
+    margin-bottom: 18px;
+  }
+  .story-card {
+    background: linear-gradient(155deg, var(--panel-bg), #060a12);
+    border: 1px solid var(--border); border-top: 3px solid var(--accent, var(--gold));
+    border-radius: 12px; padding: 14px 16px; position: relative; overflow: hidden;
+  }
+  .story-card::after {
+    content: ''; position: absolute; top: -30%; right: -20%; width: 120px; height: 120px;
+    background: radial-gradient(circle, var(--accent, var(--gold)) 0%, transparent 70%);
+    opacity: 0.12; pointer-events: none;
+  }
+  .story-card .story-title {
+    font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--accent, var(--gold));
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;
+  }
+  .story-card .story-count {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; color: var(--text-main); white-space: nowrap;
+  }
+  .story-card .story-text { font-size: 0.78rem; line-height: 1.5; color: var(--text-muted); font-style: italic; }
+  .story-card.physics-theme { --accent: var(--phys); }
+  .story-card.chem-theme { --accent: var(--chem); }
+  .story-card.maths-theme { --accent: var(--maths); }
+  .story-card.adv-theme { --accent: var(--gold-bright); }
+
+  .tab-qcount {
+    display: inline-block; font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    background: rgba(0,0,0,0.35); border-radius: 999px; padding: 1px 7px; margin-left: 6px; opacity: 0.85;
+  }
+
+  /* Manual / help section */
+  .manual-block { margin-bottom: 20px; }
+  .manual-block h3 {
+    font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: var(--gold-bright);
+    margin: 0 0 6px 0; display: flex; align-items: center; gap: 8px;
+  }
+  .manual-block p, .manual-block li { font-size: 0.83rem; line-height: 1.6; color: var(--text-main); }
+  .manual-block ul { margin: 4px 0 0 18px; padding: 0; }
+  .manual-block li { margin-bottom: 4px; }
+  .manual-block .tag {
+    display: inline-block; font-size: 0.65rem; font-family: 'Share Tech Mono', monospace;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px;
+    padding: 1px 6px; color: var(--text-muted); margin-right: 4px;
+  }
+
+  /* Battle Tag / identity bar */
+  .battletag-bar {
+    display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap;
+    margin: -6px 0 16px 0;
+  }
+  .battletag-bar input {
+    background: #0a0612; border: 1px solid var(--border); color: var(--text-main);
+    padding: 8px 12px; border-radius: 999px; font-size: 0.82rem; text-align: center; width: 200px;
+  }
+  .battletag-status { font-size: 0.76rem; color: var(--text-muted); }
+  .battletag-status.linked { color: var(--chem); }
+
+  /* Leaderboard */
+  .lb-toggle { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .lb-toggle button {
+    background: var(--panel-bg); border: 1px solid var(--border); color: var(--text-muted);
+    font-family: 'Orbitron', sans-serif; font-size: 0.78rem; font-weight: 700; padding: 8px 16px;
+    border-radius: 999px; cursor: pointer; transition: all 0.2s;
+  }
+  .lb-toggle button.active { color: var(--bg-color); background: linear-gradient(135deg, var(--lb), var(--gold)); border-color: transparent; box-shadow: 0 0 14px rgba(255,217,61,0.4); }
+  .lb-section {
+    background: linear-gradient(160deg, var(--card-bg), #0a0612);
+    border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px;
+  }
+  .lb-section h2 { margin-top: 0; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; color: var(--lb); display:flex; align-items:center; gap:8px; justify-content:space-between; }
+  table.lb-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.lb-table th { text-align: left; color: var(--text-muted); border-bottom: 1px solid var(--border); padding: 8px 6px; font-family: 'Orbitron', sans-serif; font-weight: 600; }
+  table.lb-table td { padding: 9px 6px; border-bottom: 1px solid var(--locked); }
+  .lb-rank { font-family: 'Orbitron', sans-serif; font-weight: 800; }
+  .lb-you { background: rgba(255,217,61,0.06); }
+  .lb-you td:first-child { border-left: 3px solid var(--lb); }
+  .lb-empty { text-align: center; color: var(--text-muted); padding: 16px; }
+  .lb-refresh { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 999px; padding: 5px 12px; font-size: 0.72rem; cursor: pointer; font-family: 'Share Tech Mono', monospace; }
+  .lb-refresh:hover { color: var(--lb); border-color: var(--lb); }
+  .lb-note { font-size: 0.76rem; color: var(--text-muted); text-align: center; margin-bottom: 16px; }
+
+  /* ================= JEE ADVANCED — SOLO LEVELING SYSTEM WINDOW ================= */
+  .advanced-zone {
+    /* Re-skin every reused component (buttons, bars, cards, badges) to a Solo Leveling
+       "System" pop-up theme just by overriding the same custom properties they already read from. */
+    --bg-color: #05040f;
+    --card-bg: #0b0a1e;
+    --panel-bg: #0d0c26;
+    --gold: #7b5cff;
+    --gold-bright: #3ddcff;
+    --xp: #4f6bff;
+    --phys: #4f6bff;
+    --chem: #9b5cff;
+    --maths: #3ddcff;
+    --danger: #ff3b5c;
+    --text-main: #e7e7ff;
+    --text-muted: #6c6c9c;
+    --border: #35316e;
+    --locked: #16152f;
+    --bronze: #4a4a80;
+    --silver: #b3b3e6;
+    --lb: #b48cff;
+
+    position: relative;
+    isolation: isolate;
+    color: var(--text-main);
+    padding: 28px 22px 30px;
+    margin-top: 4px;
+    clip-path: polygon(0 14px, 14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px));
+    background:
+      radial-gradient(circle at 15% 5%, rgba(123,92,255,0.18) 0%, transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(61,220,255,0.14) 0%, transparent 45%),
+      radial-gradient(circle at 50% 100%, rgba(79,107,255,0.14) 0%, transparent 55%),
+      linear-gradient(160deg, #0a0920, #030308);
+    box-shadow: 0 0 0 1px rgba(123,92,255,0.35), 0 0 45px rgba(123,92,255,0.25), inset 0 0 0 1px rgba(61,220,255,0.12), inset 0 0 60px rgba(20,10,50,0.5);
+  }
+  .advanced-zone::before {
+    /* thin animated system-window frame, pulsing like an in-world UI panel */
+    content: ''; position: absolute; inset: 6px; pointer-events: none; z-index: 0;
+    clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+    border: 1px solid rgba(123,92,255,0.5);
+    animation: advPulseFrame 3.6s ease-in-out infinite;
+  }
+  .advanced-zone::after {
+    /* faint drifting mana particles */
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(1.5px 1.5px at 12% 20%, rgba(123,92,255,0.9), transparent),
+      radial-gradient(1px 1px at 78% 15%, rgba(61,220,255,0.8), transparent),
+      radial-gradient(1.5px 1.5px at 45% 75%, rgba(123,92,255,0.8), transparent),
+      radial-gradient(1px 1px at 65% 40%, rgba(61,220,255,0.7), transparent),
+      radial-gradient(1px 1px at 88% 85%, rgba(123,92,255,0.7), transparent),
+      radial-gradient(1.5px 1.5px at 25% 55%, rgba(79,107,255,0.8), transparent);
+    animation: advDrift 9s ease-in-out infinite alternate;
+  }
+  @keyframes advPulseFrame {
+    0%, 100% { box-shadow: inset 0 0 8px rgba(123,92,255,0.25); border-color: rgba(123,92,255,0.5); }
+    50% { box-shadow: inset 0 0 18px rgba(61,220,255,0.35); border-color: rgba(61,220,255,0.7); }
+  }
+  @keyframes advDrift {
+    0% { transform: translateY(0px); opacity: 0.85; }
+    100% { transform: translateY(-6px); opacity: 1; }
+  }
+  .advanced-zone > * { position: relative; z-index: 1; }
+
+  .adv-portal-header { text-align: center; margin-bottom: 20px; }
+  .adv-portal-header::before {
+    content: '[ SYSTEM ]'; display: block; font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 0.68rem; letter-spacing: 4px; color: var(--maths); margin-bottom: 8px;
+    text-shadow: 0 0 8px rgba(61,220,255,0.7);
+  }
+  .adv-portal-header h2 {
+    font-family: 'Orbitron', sans-serif; font-weight: 800; letter-spacing: 2px;
+    text-transform: uppercase; font-size: 1.25rem; margin: 0 0 8px 0; color: var(--text-main);
+    text-shadow: 0 0 10px rgba(123,92,255,0.9), 0 0 22px rgba(61,220,255,0.5);
+    animation: advTitlePulse 3.6s ease-in-out infinite;
+  }
+  @keyframes advTitlePulse {
+    0%, 100% { text-shadow: 0 0 10px rgba(123,92,255,0.9), 0 0 22px rgba(61,220,255,0.5); }
+    50% { text-shadow: 0 0 16px rgba(61,220,255,1), 0 0 30px rgba(123,92,255,0.7); }
+  }
+  .adv-portal-header p { color: var(--text-muted); font-size: 0.8rem; margin: 0; letter-spacing: 0.4px; }
+
+  .adv-subject-toggle { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .adv-subject-toggle button {
+    background: var(--panel-bg); border: 1px solid var(--border); color: var(--text-muted);
+    font-family: 'Orbitron', sans-serif; font-size: 0.75rem; font-weight: 700; padding: 9px 18px;
+    cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .adv-subject-toggle button.active {
+    color: #05040f; background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+    border-color: transparent; box-shadow: 0 0 16px rgba(123,92,255,0.6);
+  }
+  .adv-subject-toggle button:hover:not(.active) { border-color: var(--gold-bright); color: var(--gold-bright); }
+  .adv-subject-content { display: none; }
+  .adv-subject-content.active { display: block; }
+
+  .adv-card {
+    border-color: var(--locked);
+    clip-path: polygon(0 10px, 10px 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+  .adv-badge {
+    background: linear-gradient(135deg, var(--gold-bright), var(--gold)); color: #05040f;
+    font-family: 'Orbitron', sans-serif; box-shadow: 0 0 8px rgba(123,92,255,0.5);
+  }
+
+  .adv-counters { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .adv-counter-box {
+    flex: 1; min-width: 150px; background: rgba(5,4,15,0.85); border: 1px solid var(--border);
+    padding: 9px 12px; display: flex; flex-direction: column; gap: 6px;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+  .adv-counter-label {
+    font-size: 0.68rem; color: var(--text-muted); font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .adv-num-input {
+    background: #030309; border: 1px solid var(--border); color: var(--gold-bright);
+    border-radius: 2px; padding: 6px 8px; font-size: 0.85rem; width: 100%;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .adv-num-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 8px rgba(123,92,255,0.55); }
+  .adv-dpp-inputs { display: flex; align-items: center; gap: 6px; }
+  .adv-num-small { width: 60px; flex: none; text-align: center; }
+  .adv-slash { color: var(--text-muted); font-weight: 700; }
+
+  /* Advanced cards keep the same collapse behavior, but also hide the counters row */
+  .chapter-card.collapsed .adv-counters { display: none; }
+
+  /* Advanced-zone borrowed components (chapter-card, log-section, tables) already read the
+     overridden variables above, so they reskin automatically without extra rules. */
+  .advanced-zone .log-section, .advanced-zone .subject-summary {
+    clip-path: polygon(0 10px, 10px 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+  .advanced-zone table.test-table td, .advanced-zone table.test-table th { border-color: var(--border); }
+</style>
+</head>
+<body>
+
+<button class="hamburger-fab" id="hamburger-fab" onclick="toggleNavPanel()" aria-label="Open navigation">
+  <span></span><span></span><span></span>
+</button>
+
+<div class="container">
+  <header>
+    <h1>🔥 JEE Battle Royale Tracker</h1>
+    <p>80 chapters on the map. Drop in, loot every topic, and survive to Rank 1 — Physics, Chemistry & Maths.</p>
+  </header>
+
+  <div class="hud">
+    <div class="hud-top">
+      <span class="hud-level" id="hud-level">Rank 1 / 50 Rookie</span>
+      <span class="hud-xp-label" id="hud-xp-label">0 / 7200 XP</span>
+    </div>
+    <div class="hud-bar-track"><div class="hud-bar-fill" id="hud-bar-fill"></div></div>
+    <div class="hud-streak-row">
+      <span id="hud-streak">Start your streak today!</span>
+      <span id="hud-streak-best">Best: 0</span>
+    </div>
+    <div class="hud-present-row">
+      <button id="present-btn" class="add-btn present-btn" onclick="markPresent()">🙋 Mark Present</button>
+      <span id="present-count">📅 0 Days Present</span>
+    </div>
+  </div>
+
+  <div class="battletag-bar">
+    <input id="battletag-input" placeholder="Your Battle Tag (name for leaderboard)" maxlength="24">
+    <button class="add-btn" onclick="setBattleTag()">Save Tag</button>
+    <span class="battletag-status" id="battletag-status">Set a Battle Tag to join the shared leaderboard</span>
+  </div>
+
+  <div class="completion-summary" id="completion-summary"></div>
+
+  <div class="balance-nudge" id="balance-nudge">
+    <span class="icon">⚖️</span>
+    <span id="balance-nudge-text"></span>
+  </div>
+
+  <div id="questToast" class="quest-toast"></div>
+
+  <div class="save-status" id="saveStatus"></div>
+  <div class="util-bar">
+    <button class="util-btn util-btn-cyan" onclick="exportBackup()"><span class="util-icon">⬇</span><span>Download Backup</span></button>
+    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importBackup(event)">
+    <button class="util-btn util-btn-violet" onclick="document.getElementById('importFile').click()"><span class="util-icon">⬆</span><span>Restore Backup</span></button>
+    <button class="util-btn util-btn-report" onclick="exportWeeklyReport()"><span class="util-icon">🖨</span><span>Weekly Report</span></button>
+  </div>
+
+  <button class="nav-toggle-btn" onclick="toggleNavPanel()"><span class="bars">☰</span> Navigate</button>
+
+  <div class="nav-overlay" id="nav-overlay" onclick="closeNavPanel()"></div>
+  <nav class="nav-panel" id="nav-panel">
+    <div class="nav-panel-header">
+      <h2>🔥 Navigate</h2>
+      <button class="nav-close-btn" onclick="closeNavPanel()">✕</button>
+    </div>
+    <button class="tab-btn active" onclick="switchTab('daily', this)">📝 Daily Qs</button>
+    <button class="tab-btn" onclick="switchTab('physics', this)">⚛ Physics<span class="tab-qcount" id="tabq-physics">0</span></button>
+    <button class="tab-btn" onclick="switchTab('chemistry', this)">🧪 Chemistry<span class="tab-qcount" id="tabq-chemistry">0</span></button>
+    <button class="tab-btn" onclick="switchTab('maths', this)">➗ Mathematics<span class="tab-qcount" id="tabq-maths">0</span></button>
+    <button class="tab-btn" onclick="switchTab('advanced', this)">🌌 JEE Advanced<span class="tab-qcount" id="tabq-advanced">0</span></button>
+    <button class="tab-btn" onclick="switchTab('tests', this)">🎯 Battle Log</button>
+    <button class="tab-btn" onclick="switchTab('achievements', this)">🏆 Booyah Badges</button>
+    <button class="tab-btn" onclick="switchTab('leaderboard', this)">🌐 Leaderboard</button>
+    <button class="tab-btn" onclick="switchTab('stories', this)">🎬 Stories</button>
+    <button class="tab-btn" onclick="switchTab('manual', this)">📖 Manual</button>
+  </nav>
+
+  <div id="daily" class="tab-content active">
+    <div class="log-section">
+      <h2>📝 Daily Questions Log</h2>
+      <p style="font-size:0.78rem; margin: -6px 0 12px 0; color: var(--text-muted);">Log what you drilled today — subject, difficulty, how many questions, and which exam it was for.</p>
+      <div class="add-form">
+        <select id="dq-subject">
+          <option>Physics</option>
+          <option>Chemistry</option>
+          <option>Maths</option>
+        </select>
+        <select id="dq-level">
+          <option>Easy</option>
+          <option>Medium</option>
+          <option>Hard</option>
+        </select>
+        <input id="dq-count" type="number" placeholder="No. of Questions" min="0">
+        <select id="dq-exam">
+          <option>JEE Main</option>
+          <option>JEE Advanced</option>
+          <option>Other</option>
+        </select>
+        <input id="dq-exam-note" placeholder="Exam name (if Other)">
+        <input id="dq-date" type="date">
+        <input id="dq-note" placeholder="Note (topic, source, mistakes...)">
+        <button class="add-btn" onclick="addDailyQuestions()">+ Log Entry</button>
+      </div>
+      <div class="daily-summary" id="daily-summary"></div>
+      <table class="test-table">
+        <thead>
+          <tr><th>Date</th><th>Subject</th><th>Level</th><th>Qs</th><th>Exam</th><th>Note</th><th></th></tr>
+        </thead>
+        <tbody id="daily-questions-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="physics" class="tab-content">
+    <div class="subject-summary physics-theme">
+      <h2>⚛ Physics Loot Zone</h2>
+      <div class="progress-container"><div class="progress-bar" id="subject-bar-physics"></div></div>
+      <span class="progress-text" id="subject-pct-physics">0% Overall</span>
+      <div style="margin-top:10px;">
+        <button class="add-btn" onclick="setAllCollapsed('physics', true)">Collapse All</button>
+        <button class="add-btn" onclick="setAllCollapsed('physics', false)">Expand All</button>
+      </div>
+    </div>
+    <div id="physics-list"></div>
+  </div>
+
+  <div id="chemistry" class="tab-content">
+    <div class="subject-summary chem-theme">
+      <h2>🧪 Chemistry Loot Zone</h2>
+      <div class="progress-container"><div class="progress-bar" id="subject-bar-chemistry"></div></div>
+      <span class="progress-text" id="subject-pct-chemistry">0% Overall</span>
+      <div style="margin-top:10px;">
+        <button class="add-btn" onclick="setAllCollapsed('chemistry', true)">Collapse All</button>
+        <button class="add-btn" onclick="setAllCollapsed('chemistry', false)">Expand All</button>
+      </div>
+    </div>
+    <div id="chemistry-list"></div>
+  </div>
+
+  <div id="maths" class="tab-content">
+    <div class="subject-summary maths-theme">
+      <h2>➗ Mathematics Loot Zone</h2>
+      <div class="progress-container"><div class="progress-bar" id="subject-bar-maths"></div></div>
+      <span class="progress-text" id="subject-pct-maths">0% Overall</span>
+      <div style="margin-top:10px;">
+        <button class="add-btn" onclick="setAllCollapsed('maths', true)">Collapse All</button>
+        <button class="add-btn" onclick="setAllCollapsed('maths', false)">Expand All</button>
+      </div>
+    </div>
+    <div id="maths-list"></div>
+  </div>
+
+  <div id="advanced" class="tab-content">
+    <div class="advanced-zone">
+      <div class="adv-portal-header">
+        <h2>The Advanced Dungeon</h2>
+        <p>A new quest has appeared. Same 80 chapters — references, question count, DPPs, and its own test log.</p>
+      </div>
+
+      <div class="levelup-guide" style="margin-bottom: 18px;">
+        <h2>⚠ Anomaly Scan — Weak Spots</h2>
+        <p style="font-size:0.78rem; margin: -6px 0 12px 0;">Chapters flagged by the System — weak Advanced Test Log scores vs. checklist progress.</p>
+        <div id="adv-weakspot-radar"></div>
+      </div>
+
+      <div class="adv-subject-toggle">
+        <button class="active" onclick="switchAdvSubject('physics-adv', this)">⚛ Physics</button>
+        <button onclick="switchAdvSubject('chemistry-adv', this)">🧪 Chemistry</button>
+        <button onclick="switchAdvSubject('maths-adv', this)">➗ Maths</button>
+        <button onclick="switchAdvSubject('advanced-tests', this)">🎯 Test Log</button>
+      </div>
+
+      <div id="physics-adv" class="adv-subject-content active">
+        <div class="subject-summary physics-theme">
+          <h2>⚛ Physics — Advanced Zone</h2>
+          <div class="progress-container"><div class="progress-bar" id="subject-bar-physics-adv"></div></div>
+          <span class="progress-text" id="subject-pct-physics-adv">0% Overall</span>
+          <div style="margin-top:10px;">
+            <button class="add-btn" onclick="setAllCollapsed('physics-adv', true)">Collapse All</button>
+            <button class="add-btn" onclick="setAllCollapsed('physics-adv', false)">Expand All</button>
+          </div>
+        </div>
+        <div id="physics-adv-list"></div>
+      </div>
+
+      <div id="chemistry-adv" class="adv-subject-content">
+        <div class="subject-summary chem-theme">
+          <h2>🧪 Chemistry — Advanced Zone</h2>
+          <div class="progress-container"><div class="progress-bar" id="subject-bar-chemistry-adv"></div></div>
+          <span class="progress-text" id="subject-pct-chemistry-adv">0% Overall</span>
+          <div style="margin-top:10px;">
+            <button class="add-btn" onclick="setAllCollapsed('chemistry-adv', true)">Collapse All</button>
+            <button class="add-btn" onclick="setAllCollapsed('chemistry-adv', false)">Expand All</button>
+          </div>
+        </div>
+        <div id="chemistry-adv-list"></div>
+      </div>
+
+      <div id="maths-adv" class="adv-subject-content">
+        <div class="subject-summary maths-theme">
+          <h2>➗ Maths — Advanced Zone</h2>
+          <div class="progress-container"><div class="progress-bar" id="subject-bar-maths-adv"></div></div>
+          <span class="progress-text" id="subject-pct-maths-adv">0% Overall</span>
+          <div style="margin-top:10px;">
+            <button class="add-btn" onclick="setAllCollapsed('maths-adv', true)">Collapse All</button>
+            <button class="add-btn" onclick="setAllCollapsed('maths-adv', false)">Expand All</button>
+          </div>
+        </div>
+        <div id="maths-adv-list"></div>
+      </div>
+
+      <div id="advanced-tests" class="adv-subject-content">
+        <div class="log-section">
+          <h2>🎯 Advanced Chapter Test Log</h2>
+          <div class="add-form">
+            <select id="act-subject">
+              <option>Physics</option>
+              <option>Chemistry</option>
+              <option>Maths</option>
+            </select>
+            <input id="act-topic" placeholder="Topic / Chapter">
+            <select id="act-level">
+              <option>Easy</option>
+              <option>Medium</option>
+              <option>Hard</option>
+            </select>
+            <input id="act-questions" type="number" placeholder="No. of Qs" min="0">
+            <input id="act-myscore" type="number" placeholder="My Score" min="0">
+            <input id="act-topperscore" type="number" placeholder="Topper's Score" min="0">
+            <input id="act-date" type="date">
+            <input id="act-note" placeholder="Note (mistakes, gaps...)">
+            <button class="add-btn" onclick="addAdvChapterTest()">+ Add Test</button>
+          </div>
+          <table class="test-table">
+            <thead>
+              <tr><th>Subject</th><th>Topic</th><th>Level</th><th>Qs</th><th>My Score</th><th>Topper</th><th>Date</th><th>Note</th><th></th></tr>
+            </thead>
+            <tbody id="adv-chapter-test-body"></tbody>
+          </table>
+        </div>
+
+        <div class="log-section">
+          <h2>🎯 Advanced Full Mock Log</h2>
+          <div class="add-form">
+            <input id="amt-name" placeholder="Test Name">
+            <input id="amt-date" type="date">
+            <input id="amt-questions" type="number" placeholder="Total Qs" value="54">
+            <input id="amt-maxmarks" type="number" placeholder="Potential Marks" value="360">
+            <input id="amt-negmarks" type="number" placeholder="Negative Marks Deducted">
+            <input id="amt-scored" type="number" placeholder="Marks I Got">
+            <input id="amt-note" placeholder="Note (weak sections, time issues...)">
+            <button class="add-btn" onclick="addAdvMajorTest()">+ Add Test</button>
+          </div>
+          <table class="test-table">
+            <thead>
+              <tr><th>Test</th><th>Date</th><th>Total Qs</th><th>Potential</th><th>Neg. Marks</th><th>My Marks</th><th>%</th><th>Note</th><th></th></tr>
+            </thead>
+            <tbody id="adv-major-test-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tests" class="tab-content">
+    <div class="danger-zone-panel" id="danger-zone-panel">
+      <h2>🚨 Danger Zone</h2>
+      <p style="font-size:0.78rem; margin: 0 0 12px 0; color: var(--text-muted);">The most critical chapters in Physics/Chemistry/Maths right now — badly-scoring or completely untested. Fix these first.</p>
+      <div id="danger-zone"></div>
+    </div>
+
+    <div class="log-section">
+      <h2>🔫 Chapter Skirmish Log</h2>
+      <div class="add-form">
+        <select id="ct-subject">
+          <option>Physics</option>
+          <option>Chemistry</option>
+          <option>Maths</option>
+        </select>
+        <input id="ct-topic" placeholder="Topic / Chapter">
+        <select id="ct-level">
+          <option>Easy</option>
+          <option>Medium</option>
+          <option>Hard</option>
+        </select>
+        <input id="ct-questions" type="number" placeholder="No. of Qs" min="0">
+        <input id="ct-myscore" type="number" placeholder="My Score" min="0">
+        <input id="ct-topperscore" type="number" placeholder="Topper's Score" min="0">
+        <input id="ct-date" type="date">
+        <input id="ct-note" placeholder="Note (mistakes, silly errors, topic gaps...)">
+        <button class="add-btn" onclick="addChapterTest()">+ Add Test</button>
+      </div>
+      <table class="test-table">
+        <thead>
+          <tr><th>Subject</th><th>Topic</th><th>Level</th><th>Qs</th><th>My Score</th><th>Topper</th><th>Date</th><th>Note</th><th></th></tr>
+        </thead>
+        <tbody id="chapter-test-body"></tbody>
+      </table>
+    </div>
+
+    <div class="log-section">
+      <h2>💀 Final Zone Log (Full Syllabus Mocks, 75 Qs)</h2>
+      <div class="add-form">
+        <input id="mt-name" placeholder="Test Name">
+        <input id="mt-date" type="date">
+        <input id="mt-questions" type="number" placeholder="Total Qs" value="75">
+        <input id="mt-maxmarks" type="number" placeholder="Potential Marks" value="300">
+        <input id="mt-negmarks" type="number" placeholder="Negative Marks Deducted">
+        <input id="mt-scored" type="number" placeholder="Marks I Got">
+        <input id="mt-note" placeholder="Note (weak sections, time issues...)">
+        <button class="add-btn" onclick="addMajorTest()">+ Add Test</button>
+      </div>
+      <table class="test-table">
+        <thead>
+          <tr><th>Test</th><th>Date</th><th>Total Qs</th><th>Potential</th><th>Neg. Marks</th><th>My Marks</th><th>%</th><th>Note</th><th></th></tr>
+        </thead>
+        <tbody id="major-test-body"></tbody>
+      </table>
+    </div>
+
+    <div class="trend-chart-wrap">
+      <h2>📈 Mock Score Trend</h2>
+      <p style="font-size:0.78rem; margin: 0 0 12px 0; color: var(--text-muted);">Final Zone mock % over time — see improvement or decline at a glance.</p>
+      <div id="mock-trend-chart"></div>
+    </div>
+  </div>
+
+  <div id="achievements" class="tab-content">
+    <div class="levelup-guide">
+      <h2>📈 Rank-Up Guide</h2>
+      <div id="levelup-stats"></div>
+      <div id="levelup-quickwins"></div>
+    </div>
+
+    <div class="levelup-guide">
+      <h2>🎯 Weak Spot Radar</h2>
+      <p style="font-size:0.8rem; margin: -6px 0 12px 0;">Chapters most dragging you down — ranked by Battle Log scores vs. checklist progress.</p>
+      <div id="weakspot-radar"></div>
+    </div>
+
+    <div class="achievements-summary" id="achievements-summary">0 / 0 Unlocked</div>
+    <div class="achievements-grid" id="achievements-grid"></div>
+  </div>
+
+  <div id="leaderboard" class="tab-content">
+    <p class="lb-note">Shared with everyone who opens this tracker. Set a Battle Tag above to appear here. Overall rank is decided by average score across your Final Zone (major) mock tests.</p>
+
+    <div class="lb-section">
+      <h2>👑 Overall — Ranked by Major Tests <button class="lb-refresh" onclick="renderLeaderboard()">↻ Refresh</button></h2>
+      <table class="lb-table">
+        <thead><tr><th>#</th><th>Player</th><th>Avg Mock %</th><th>Mocks</th><th>Best Mock</th><th>Syllabus %</th></tr></thead>
+        <tbody id="lb-overall-body"></tbody>
+      </table>
+    </div>
+
+    <div class="lb-section">
+      <h2>📚 Subject-wise — Ranked by Syllabus Completion</h2>
+      <div class="lb-toggle" id="lb-subject-toggle">
+        <button class="active" data-subject="physics" onclick="switchLbSubject('physics', this)">⚛ Physics</button>
+        <button data-subject="chemistry" onclick="switchLbSubject('chemistry', this)">🧪 Chemistry</button>
+        <button data-subject="maths" onclick="switchLbSubject('maths', this)">➗ Maths</button>
+      </div>
+      <table class="lb-table">
+        <thead><tr><th>#</th><th>Player</th><th>Completion %</th><th>Chapters Done</th></tr></thead>
+        <tbody id="lb-subject-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="stories" class="tab-content">
+    <div class="log-section">
+      <h2>🎬 Subject Stories</h2>
+      <p style="font-size:0.83rem; color: var(--text-muted); margin-bottom:16px;">A themed recap of each subject, plus your all-time question count logged for it.</p>
+      <div class="story-panel" id="story-panel"></div>
+    </div>
+  </div>
+
+  <div id="manual" class="tab-content">
+    <div class="log-section">
+      <h2>📖 Manual — How This Tracker Works</h2>
+      <p style="font-size:0.83rem; color: var(--text-muted); margin-bottom:18px;">A quick walkthrough of every section, so nothing feels like a mystery button.</p>
+
+      <div class="manual-block">
+        <h3>👑 HUD (top of page)</h3>
+        <ul>
+          <li><span class="tag">Rank / XP bar</span> Your overall level, driven by checklist completion, tests logged, and streak.</li>
+          <li><span class="tag">Streak</span> Consecutive days you've marked yourself present. Missing a day resets it.</li>
+          <li><span class="tag">Mark Present</span> Tap once per day to log attendance and keep your streak alive.</li>
+          <li><span class="tag">Battle Tag</span> A name you set so you can appear on the shared Leaderboard.</li>
+        </ul>
+      </div>
+
+      <div class="manual-block">
+        <h3>📊 Subject Completion Cards</h3>
+        <ul>
+          <li>The cards under the HUD show each subject's checklist % and chapters completed.</li>
+        </ul>
+      </div>
+
+      <div class="manual-block">
+        <h3>🎬 Stories Tab</h3>
+        <p>A themed recap card for each subject (and Advanced), plus your all-time question count for it, pulled from the Daily Qs log. The same count appears as a small badge on each subject's nav button.</p>
+      </div>
+
+      <div class="manual-block">
+        <h3>⚖️ Subject Balance Nudge</h3>
+        <p>Appears automatically if one subject is far ahead of another (25%+ gap in checklist completion). It's a nudge to stop over-preparing one subject while neglecting another — a common cause of lopsided scores.</p>
+      </div>
+
+      <div class="manual-block">
+        <h3>💾 Auto-Save & ⬇ Backup / ⬆ Restore / 🖨 Weekly Report</h3>
+        <ul>
+          <li><span class="tag">Auto-Save</span> Every checklist tick, test entry, and daily log is saved automatically to this device's local storage the instant you make it — nothing to remember, no sync step, and it works fully offline.</li>
+          <li><span class="tag">Download Backup</span> Optional — exports everything (checklists, tests, streak, daily questions) as a .json file, useful if you're moving to a new phone or want an extra copy.</li>
+          <li><span class="tag">Restore Backup</span> Loads a previously downloaded .json backup, replacing current data on this device.</li>
+          <li><span class="tag">Weekly Report</span> Opens a printable summary of the last 7 days — checklist progress, tests logged, streak, and present days. Use your browser's Print → Save as PDF to share it with a parent or mentor.</li>
+        </ul>
+      </div>
+
+      <div class="manual-block">
+        <h3>📝 Daily Qs Tab</h3>
+        <p>Log your day-to-day practice: pick a subject, difficulty level, how many questions you attempted, and which exam it was for (JEE Main, JEE Advanced, or a custom "Other" exam). Every entry feeds the subject totals shown on the Story panel and tab badges, and counts toward your daily streak.</p>
+      </div>
+
+      <div class="manual-block">
+        <h3>⚛ 🧪 ➗ Physics / Chemistry / Maths Tabs</h3>
+        <p>Each chapter has a checklist (Reference Book, NCERT Theory, PYQs by year range, Notes, Lecture). Ticking items updates that chapter's %, the subject summary, and your overall XP.</p>
+      </div>
+
+      <div class="manual-block">
+        <h3>🌌 JEE Advanced Tab</h3>
+        <p>A separate, tougher checklist layer for chapters you're pushing to Advanced level, with its own counters and its own Weak Spot Radar (Anomaly Scan) — kept independent from the Mains-only Danger Zone.</p>
+      </div>
+
+      <div class="manual-block">
+        <h3>🎯 Battle Log Tab</h3>
+        <ul>
+          <li><span class="tag">Danger Zone</span> The most critical Mains chapters right now — badly scoring or fully checklist-complete but never tested. Only these entries get a "try a 50-question test" suggestion.</li>
+          <li><span class="tag">Chapter Skirmish Log</span> Log per-chapter test results to track topic-level performance.</li>
+          <li><span class="tag">Final Zone Log</span> Log full-length mock test results.</li>
+          <li><span class="tag">Mock Score Trend</span> A line chart of your mock % over time — log at least 2 dated mocks to see it.</li>
+        </ul>
+      </div>
+
+      <div class="manual-block">
+        <h3>🏆 Booyah Badges Tab</h3>
+        <p>Achievements you unlock through consistent progress, plus the Weak Spot Radar — chapters dragging your average down across both checklist and test performance.</p>
+      </div>
+
+      <div class="manual-block">
+        <h3>🌐 Leaderboard Tab</h3>
+        <p>Compares Battle Tags across everyone using this tracker — overall by average mock score, and subject-wise by checklist completion.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------- Storage layer ----------
+// Uses Claude's window.storage when running inside claude.ai (artifact preview).
+// Falls back to the browser's own localStorage everywhere else — including this app
+// installed offline as a PWA/APK, where window.storage does not exist. Falling back
+// means data is saved automatically to the device, with zero setup and nothing that
+// can go "out of sync" — there is simply nothing else to configure.
+const hasClaudeStorage = (typeof window.storage !== 'undefined');
+
+const localDB = {
+  async get(key, shared) {
+    if (hasClaudeStorage) return window.storage.get(key, shared);
+    const raw = localStorage.getItem(key);
+    if (raw === null) throw new Error('Key not found: ' + key);
+    return { key, value: raw, shared: !!shared };
+  },
+  async set(key, value, shared) {
+    if (hasClaudeStorage) return window.storage.set(key, value, shared);
+    try {
+      localStorage.setItem(key, value);
+      return { key, value, shared: !!shared };
+    } catch (e) {
+      console.error('localStorage set failed:', e);
+      return null;
+    }
+  },
+  async delete(key, shared) {
+    if (hasClaudeStorage) return window.storage.delete(key, shared);
+    localStorage.removeItem(key);
+    return { key, deleted: true, shared: !!shared };
+  },
+  async list(prefix, shared) {
+    if (hasClaudeStorage) return window.storage.list(prefix, shared);
+    const keys = Object.keys(localStorage).filter(k => !prefix || k.startsWith(prefix));
+    return { keys, prefix, shared: !!shared };
+  }
+};
+
+// ---------- Chapter data ----------
+const CHECK_ITEMS = [
+  'Reference Book', 'NCERT Theory',
+  'PYQs (Last 1 Yr)', 'PYQs (Last 3 Yr)', 'PYQs (Last 5 Yr)', 'PYQs (Last 7 Yr)',
+  'Short Notes', 'Lecture', 'Long Notes'
+];
+
+const PHYSICS_CHAPTERS = [
+  {id:'phy-units-measurements', name:'Units and Measurements'},
+  {id:'phy-motion-straight-line', name:'Motion in a Straight Line'},
+  {id:'phy-motion-plane', name:'Motion in a Plane'},
+  {id:'phy-laws-motion', name:'Laws of Motion'},
+  {id:'phy-work-energy-power', name:'Work, Energy, and Power'},
+  {id:'phy-centre-mass-collisions', name:'Centre of Mass and Collisions'},
+  {id:'phy-rotational-dynamics', name:'Rotational Dynamics'},
+  {id:'phy-gravitation', name:'Gravitation'},
+  {id:'phy-mech-properties-solids', name:'Mechanical Properties of Solids'},
+  {id:'phy-fluid-mechanics', name:'Fluid Mechanics'},
+  {id:'phy-thermal-properties-calorimetry', name:'Thermal Properties of Matter & Calorimetry'},
+  {id:'phy-kinetic-theory-gases', name:'Kinetic Theory of Gases'},
+  {id:'phy-thermodynamics', name:'Thermodynamics'},
+  {id:'phy-oscillations-shm', name:'Oscillations (Simple Harmonic Motion)'},
+  {id:'phy-wave-motion-sound', name:'Wave Motion and Sound Waves'},
+  {id:'phy-electrostatics-charges-fields', name:'Electrostatics (Electric Charges and Fields)'},
+  {id:'phy-electrostatic-potential-capacitance', name:'Electrostatic Potential and Capacitance'},
+  {id:'phy-current-electricity', name:'Current Electricity'},
+  {id:'phy-magnetic-effects-current', name:'Magnetic Effects of Current'},
+  {id:'phy-magnetism-matter', name:'Magnetism and Matter'},
+  {id:'phy-electromagnetic-induction', name:'Electromagnetic Induction'},
+  {id:'phy-alternating-current', name:'Alternating Current'},
+  {id:'phy-em-waves', name:'Electromagnetic Waves'},
+  {id:'phy-ray-optics', name:'Ray Optics and Optical Instruments'},
+  {id:'phy-wave-optics', name:'Wave Optics'},
+  {id:'phy-dual-nature', name:'Dual Nature of Radiation and Matter'},
+  {id:'phy-atoms', name:'Atoms'},
+  {id:'phy-nuclei', name:'Nuclei'},
+  {id:'phy-semiconductor-electronics', name:'Semiconductor Electronics'},
+  {id:'phy-practical-skills', name:'Experimental Skills (Practical Physics)'}
+];
+
+const CHEMISTRY_CHAPTERS = [
+  {id:'chem-mole-concept', name:'Some Basic Concepts of Chemistry (Mole Concept)'},
+  {id:'chem-atomic-structure', name:'Atomic Structure'},
+  {id:'chem-thermodynamics', name:'Chemical Thermodynamics'},
+  {id:'chem-equilibrium', name:'Chemical Equilibrium'},
+  {id:'chem-ionic-equilibrium', name:'Ionic Equilibrium'},
+  {id:'chem-redox-reactions', name:'Redox Reactions'},
+  {id:'chem-solutions-colligative', name:'Solutions and Colligative Properties'},
+  {id:'chem-electrochemistry', name:'Electrochemistry'},
+  {id:'chem-kinetics', name:'Chemical Kinetics'},
+  {id:'chem-periodicity', name:'Classification of Elements and Periodicity in Properties'},
+  {id:'chem-bonding', name:'Chemical Bonding and Molecular Structure'},
+  {id:'chem-p-block', name:'p-Block Elements'},
+  {id:'chem-d-f-block', name:'d- and f-Block Elements'},
+  {id:'chem-coordination-compounds', name:'Coordination Compounds'},
+  {id:'chem-purification-characterisation', name:'Purification and Characterisation of Organic Compounds'},
+  {id:'chem-goc', name:'General Organic Chemistry (GOC)'},
+  {id:'chem-isomerism', name:'Isomerism'},
+  {id:'chem-hydrocarbons', name:'Hydrocarbons (Alkanes, Alkenes, Alkynes, and Aromatic)'},
+  {id:'chem-haloalkanes-haloarenes', name:'Haloalkanes and Haloarenes'},
+  {id:'chem-alcohols-phenols-ethers', name:'Alcohols, Phenols, and Ethers'},
+  {id:'chem-aldehydes-ketones-acids', name:'Aldehydes, Ketones, and Carboxylic Acids'},
+  {id:'chem-amines', name:'Amines (Organic Compounds Containing Nitrogen)'},
+  {id:'chem-biomolecules', name:'Biomolecules'},
+  {id:'chem-practical-chemistry', name:'Principles Related to Practical Chemistry (Salt Analysis & Volumetric Analysis)'},
+  {id:'chem-everyday-chemistry', name:'Chemical Principles in Everyday Chemistry'}
+];
+
+const MATHS_CHAPTERS = [
+  {id:'math-sets-relations-functions', name:'Sets, Relations, and Functions'},
+  {id:'math-complex-numbers', name:'Complex Numbers'},
+  {id:'math-quadratic-equations', name:'Quadratic Equations'},
+  {id:'math-matrices', name:'Matrices'},
+  {id:'math-determinants', name:'Determinants'},
+  {id:'math-permutations-combinations', name:'Permutations and Combinations'},
+  {id:'math-binomial-theorem', name:'Binomial Theorem'},
+  {id:'math-sequences-series', name:'Sequences and Series (AP, GP, and Special Series)'},
+  {id:'math-trig-identities-equations', name:'Trigonometric Identities and Equations'},
+  {id:'math-inverse-trig', name:'Inverse Trigonometric Functions'},
+  {id:'math-limits-continuity', name:'Limits, Continuity, and Differentiability'},
+  {id:'math-methods-differentiation', name:'Methods of Differentiation'},
+  {id:'math-applications-derivatives', name:'Applications of Derivatives (Tangent, Normal, Monotonicity, Maxima-Minima)'},
+  {id:'math-indefinite-integration', name:'Indefinite Integration'},
+  {id:'math-definite-integration', name:'Definite Integration'},
+  {id:'math-area-under-curves', name:'Area Under Curves (Application of Integrals)'},
+  {id:'math-differential-equations', name:'Differential Equations'},
+  {id:'math-straight-lines', name:'Straight Lines'},
+  {id:'math-circles', name:'Circles'},
+  {id:'math-conic-sections', name:'Conic Sections (Parabola, Ellipse, and Hyperbola)'},
+  {id:'math-vector-algebra', name:'Vector Algebra'},
+  {id:'math-3d-geometry', name:'Three-Dimensional Geometry'},
+  {id:'math-statistics', name:'Statistics'},
+  {id:'math-probability', name:'Probability'},
+  {id:'math-mathematical-reasoning', name:'Mathematical Reasoning / Mathematical Induction'}
+];
+
+const SUBJECTS = [
+  {key:'physics', chapters: PHYSICS_CHAPTERS, listId: 'physics-list'},
+  {key:'chemistry', chapters: CHEMISTRY_CHAPTERS, listId: 'chemistry-list'},
+  {key:'maths', chapters: MATHS_CHAPTERS, listId: 'maths-list'}
+];
+
+const TOTAL_CHAPTERS = SUBJECTS.reduce((sum, s) => sum + s.chapters.length, 0);
+
+// ---------- JEE Advanced chapter data (same 80 chapters, advanced-level tracking) ----------
+const PHYSICS_ADV_CHAPTERS = PHYSICS_CHAPTERS.map(ch => ({ id: ch.id + '-adv', name: ch.name }));
+const CHEMISTRY_ADV_CHAPTERS = CHEMISTRY_CHAPTERS.map(ch => ({ id: ch.id + '-adv', name: ch.name }));
+const MATHS_ADV_CHAPTERS = MATHS_CHAPTERS.map(ch => ({ id: ch.id + '-adv', name: ch.name }));
+
+const SUBJECTS_ADV = [
+  {key:'physics-adv', chapters: PHYSICS_ADV_CHAPTERS, listId: 'physics-adv-list'},
+  {key:'chemistry-adv', chapters: CHEMISTRY_ADV_CHAPTERS, listId: 'chemistry-adv-list'},
+  {key:'maths-adv', chapters: MATHS_ADV_CHAPTERS, listId: 'maths-adv-list'}
+];
+
+// ---------- State ----------
+let progressData = {};   // chapterId -> array<bool> length 9
+let advProgressData = {}; // chapterId(-adv) -> {ref1,ref2,ref3,questions,dppsDone,dppsTotal}
+let chapterTests = [];   // {subject,topic,level,questions,myscore,topperscore,date}
+let advChapterTests = []; // same shape, logged separately for the Advanced dimension
+let advMajorTests = [];   // same shape, logged separately for the Advanced dimension
+let streakData = { lastActiveDate: null, currentStreak: 0, longestStreak: 0 };
+let presentData = { dates: [] }; // array of 'YYYY-MM-DD' strings the student marked themselves present
+let majorTests = [];     // {name,date,questions,maxmarks,negmarks,scored}
+let dailyQuestions = []; // {date,subject,level,count,exam,note}
+let collapsedState = {}; // chapterId -> bool (true = collapsed)
+let playerName = '';     // Battle Tag used for the shared leaderboard
+let lbSubject = 'physics';
+
+// ---------- Level system ----------
+const MAX_LEVEL = 50;
+const LEVEL_STEP_PERCENT = 100 / (MAX_LEVEL - 1); // % of overall progress needed per level
+function getLevelFromPercent(percent) {
+  return Math.min(MAX_LEVEL, 1 + Math.floor(percent / LEVEL_STEP_PERCENT));
+}
+
+// ---------- Completion rules ----------
+// A chapter (or subject) only needs 90% of its checklist ticked to count as "completed".
+const COMPLETION_THRESHOLD = 90;
+function isChapterComplete(arr) {
+  const checked = (arr || []).filter(Boolean).length;
+  const percent = CHECK_ITEMS.length > 0 ? (checked / CHECK_ITEMS.length) * 100 : 0;
+  return percent >= COMPLETION_THRESHOLD;
+}
+
+// ---------- Render chapter cards ----------
+function chapterCardHTML(ch, questNumber) {
+  const items = CHECK_ITEMS.map((label, i) =>
+    `<label class="check-item"><input type="checkbox" data-index="${i}" onchange="updateProgress(this)"> ${label}</label>`
+  ).join('');
+  return `
+    <div class="chapter-card" data-chapter="${ch.id}">
+      <div class="chapter-header">
+        <div class="chapter-title-wrap" onclick="toggleChapter('${ch.id}')">
+          <button class="collapse-toggle" id="toggle-${ch.id}">▾</button>
+          <span class="quest-badge">Q${questNumber}</span>
+          <h3 class="chapter-title">${ch.name}</h3>
+        </div>
+        <span class="progress-text" id="pct-${ch.id}">0% Complete</span>
+      </div>
+      <div class="progress-container"><div class="progress-bar" id="bar-${ch.id}"></div></div>
+      <div class="checklist">${items}</div>
+    </div>`;
+}
+
+function buildAllCards() {
+  let questNumber = 0;
+  SUBJECTS.forEach(s => {
+    document.getElementById(s.listId).innerHTML = s.chapters.map(ch => {
+      questNumber += 1;
+      return chapterCardHTML(ch, questNumber);
+    }).join('');
+  });
+}
+
+// ---------- JEE Advanced: card template + rendering ----------
+function defaultAdvState() {
+  return { ref1: false, ref2: false, ref3: false, questions: 0, dppsDone: 0, dppsTotal: 0 };
+}
+
+function computeAdvPercent(state) {
+  const refsChecked = (state.ref1 ? 1 : 0) + (state.ref2 ? 1 : 0) + (state.ref3 ? 1 : 0);
+  const refsPct = (refsChecked / 3) * 100;
+  const dppPct = state.dppsTotal > 0 ? Math.min(100, (state.dppsDone / state.dppsTotal) * 100) : 0;
+  return Math.round(refsPct * 0.5 + dppPct * 0.5);
+}
+
+function advChapterCardHTML(ch, questNumber) {
+  return `
+    <div class="chapter-card adv-card" data-chapter="${ch.id}">
+      <div class="chapter-header">
+        <div class="chapter-title-wrap" onclick="toggleChapter('${ch.id}')">
+          <button class="collapse-toggle" id="toggle-${ch.id}">▾</button>
+          <span class="quest-badge adv-badge">A${questNumber}</span>
+          <h3 class="chapter-title">${ch.name}</h3>
+        </div>
+        <span class="progress-text" id="pct-${ch.id}">0% Complete</span>
+      </div>
+      <div class="progress-container"><div class="progress-bar" id="bar-${ch.id}"></div></div>
+      <div class="checklist adv-checklist">
+        <label class="check-item"><input type="checkbox" data-ref="ref1" onchange="updateAdvField('${ch.id}','ref1', this.checked)"> Reference 1</label>
+        <label class="check-item"><input type="checkbox" data-ref="ref2" onchange="updateAdvField('${ch.id}','ref2', this.checked)"> Reference 2</label>
+        <label class="check-item"><input type="checkbox" data-ref="ref3" onchange="updateAdvField('${ch.id}','ref3', this.checked)"> Reference 3</label>
+      </div>
+      <div class="adv-counters">
+        <div class="adv-counter-box">
+          <span class="adv-counter-label">Questions Solved</span>
+          <input type="number" min="0" class="adv-num-input" id="q-${ch.id}" value="0" onchange="updateAdvField('${ch.id}','questions', this.value)">
+        </div>
+        <div class="adv-counter-box">
+          <span class="adv-counter-label">DPPs Done</span>
+          <div class="adv-dpp-inputs">
+            <input type="number" min="0" class="adv-num-input adv-num-small" id="dppdone-${ch.id}" value="0" onchange="updateAdvField('${ch.id}','dppsDone', this.value)">
+            <span class="adv-slash">/</span>
+            <input type="number" min="0" class="adv-num-input adv-num-small" id="dpptotal-${ch.id}" value="0" onchange="updateAdvField('${ch.id}','dppsTotal', this.value)">
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildAllAdvCards() {
+  let questNumber = 0;
+  SUBJECTS_ADV.forEach(s => {
+    document.getElementById(s.listId).innerHTML = s.chapters.map(ch => {
+      questNumber += 1;
+      return advChapterCardHTML(ch, questNumber);
+    }).join('');
+  });
+}
+
+function renderAdvChapterPercent(chapterId) {
+  const state = advProgressData[chapterId] || defaultAdvState();
+  const percent = computeAdvPercent(state);
+  const bar = document.getElementById(`bar-${chapterId}`);
+  const pct = document.getElementById(`pct-${chapterId}`);
+  if (bar) bar.style.width = percent + '%';
+  if (pct) pct.innerText = percent + '% Complete';
+
+  const card = document.querySelector(`.chapter-card[data-chapter="${chapterId}"]`);
+  if (card) {
+    card.classList.remove('tier-bronze', 'tier-silver', 'tier-gold');
+    if (percent >= COMPLETION_THRESHOLD) card.classList.add('tier-gold');
+    else if (percent >= 50) card.classList.add('tier-silver');
+    else if (percent > 0) card.classList.add('tier-bronze');
+  }
+  return percent;
+}
+
+function updateAdvSubjectSummary(subject) {
+  let total = 0;
+  subject.chapters.forEach(ch => {
+    const state = advProgressData[ch.id] || defaultAdvState();
+    total += computeAdvPercent(state);
+  });
+  const avg = Math.round(total / subject.chapters.length);
+  const bar = document.getElementById(`subject-bar-${subject.key}`);
+  const pct = document.getElementById(`subject-pct-${subject.key}`);
+  if (bar) bar.style.width = avg + '%';
+  if (pct) pct.innerText = avg + '% Overall';
+}
+
+function updateAdvField(chapterId, field, rawValue) {
+  if (!advProgressData[chapterId]) advProgressData[chapterId] = defaultAdvState();
+  const state = advProgressData[chapterId];
+
+  if (field === 'ref1' || field === 'ref2' || field === 'ref3') {
+    state[field] = !!rawValue;
+    const card = document.querySelector(`.chapter-card[data-chapter="${chapterId}"]`);
+    if (card) {
+      const cb = card.querySelector(`input[data-ref="${field}"]`);
+      if (cb) cb.parentElement.classList.toggle('checked', state[field]);
+    }
+  } else {
+    state[field] = Math.max(0, Number(rawValue) || 0);
+  }
+
+  renderAdvChapterPercent(chapterId);
+  const subject = SUBJECTS_ADV.find(s => s.chapters.some(ch => ch.id === chapterId));
+  if (subject) updateAdvSubjectSummary(subject);
+  recordActivity();
+  renderAdvWeakSpotRadar();
+  saveAdvProgress();
+}
+
+function applyAdvProgressToDOM() {
+  SUBJECTS_ADV.forEach(s => {
+    s.chapters.forEach(ch => {
+      const state = advProgressData[ch.id] || defaultAdvState();
+      const card = document.querySelector(`.chapter-card[data-chapter="${ch.id}"]`);
+      if (!card) return;
+      ['ref1', 'ref2', 'ref3'].forEach(f => {
+        const cb = card.querySelector(`input[data-ref="${f}"]`);
+        if (cb) { cb.checked = !!state[f]; cb.parentElement.classList.toggle('checked', !!state[f]); }
+      });
+      const qInput = document.getElementById(`q-${ch.id}`);
+      if (qInput) qInput.value = state.questions || 0;
+      const dppDoneInput = document.getElementById(`dppdone-${ch.id}`);
+      if (dppDoneInput) dppDoneInput.value = state.dppsDone || 0;
+      const dppTotalInput = document.getElementById(`dpptotal-${ch.id}`);
+      if (dppTotalInput) dppTotalInput.value = state.dppsTotal || 0;
+      renderAdvChapterPercent(ch.id);
+    });
+    updateAdvSubjectSummary(s);
+  });
+}
+
+function switchAdvSubject(subjectContentId, btnEl) {
+  document.querySelectorAll('.adv-subject-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.adv-subject-toggle button').forEach(b => b.classList.remove('active'));
+  document.getElementById(subjectContentId).classList.add('active');
+  if (btnEl) btnEl.classList.add('active');
+}
+
+function applyProgressToDOM() {
+  SUBJECTS.forEach(s => {
+    s.chapters.forEach(ch => {
+      const arr = progressData[ch.id];
+      const card = document.querySelector(`.chapter-card[data-chapter="${ch.id}"]`);
+      if (!card) return;
+      const boxes = card.querySelectorAll('input[type="checkbox"]');
+      boxes.forEach((cb, i) => {
+        const checked = arr ? !!arr[i] : false;
+        cb.checked = checked;
+        cb.parentElement.classList.toggle('checked', checked);
+      });
+      renderChapterPercent(ch.id);
+    });
+    updateSubjectSummary(s);
+  });
+  updatePlayerHUD();
+}
+
+function renderChapterPercent(chapterId) {
+  const arr = progressData[chapterId] || [];
+  const checkedCount = arr.filter(Boolean).length;
+  const percent = Math.round((checkedCount / CHECK_ITEMS.length) * 100);
+  const bar = document.getElementById(`bar-${chapterId}`);
+  const pct = document.getElementById(`pct-${chapterId}`);
+  if (bar) bar.style.width = percent + '%';
+  if (pct) pct.innerText = percent + '% Complete';
+
+  const card = document.querySelector(`.chapter-card[data-chapter="${chapterId}"]`);
+  if (card) {
+    card.classList.remove('tier-bronze', 'tier-silver', 'tier-gold');
+    if (percent >= COMPLETION_THRESHOLD) card.classList.add('tier-gold');
+    else if (percent >= 50) card.classList.add('tier-silver');
+    else if (percent > 0) card.classList.add('tier-bronze');
+  }
+  return percent;
+}
+
+function getChapterName(chapterId) {
+  for (const s of SUBJECTS) {
+    const found = s.chapters.find(ch => ch.id === chapterId);
+    if (found) return found.name;
+  }
+  return '';
+}
+
+let questToastTimer = null;
+function showQuestToast(message) {
+  const toast = document.getElementById('questToast');
+  if (!toast) return;
+  toast.innerText = message;
+  toast.classList.add('show');
+  clearTimeout(questToastTimer);
+  questToastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+}
+
+function updatePlayerHUD() {
+  const totalItems = TOTAL_CHAPTERS * CHECK_ITEMS.length;
+  let checkedTotal = 0;
+  SUBJECTS.forEach(s => {
+    s.chapters.forEach(ch => {
+      const arr = progressData[ch.id] || [];
+      checkedTotal += arr.filter(Boolean).length;
+    });
+  });
+  const xpPerItem = 10;
+  const totalXP = checkedTotal * xpPerItem;
+  const maxXP = totalItems * xpPerItem;
+  const overallPercent = totalItems > 0 ? (checkedTotal / totalItems) * 100 : 0;
+  const level = getLevelFromPercent(overallPercent); // Level 1 to 50
+
+  const levelEl = document.getElementById('hud-level');
+  const xpLabelEl = document.getElementById('hud-xp-label');
+  const barEl = document.getElementById('hud-bar-fill');
+  if (levelEl) levelEl.innerText = `Rank ${level} / ${MAX_LEVEL} ${level >= MAX_LEVEL ? 'Grandmaster' : level >= 35 ? 'Heroic' : level >= 20 ? 'Diamond' : level >= 10 ? 'Gold' : 'Rookie'}`;
+  if (xpLabelEl) xpLabelEl.innerText = `${totalXP} / ${maxXP} XP`;
+  if (barEl) barEl.style.width = overallPercent + '%';
+
+  renderCompletionSummary();
+  renderAchievements();
+}
+
+// ---------- Achievements ----------
+function countCompletedChapters(chapters) {
+  return chapters.filter(ch => isChapterComplete(progressData[ch.id])).length;
+}
+
+function getOverallPercent() {
+  const totalItems = TOTAL_CHAPTERS * CHECK_ITEMS.length;
+  let checkedTotal = 0;
+  SUBJECTS.forEach(s => s.chapters.forEach(ch => {
+    checkedTotal += (progressData[ch.id] || []).filter(Boolean).length;
+  }));
+  return totalItems > 0 ? (checkedTotal / totalItems) * 100 : 0;
+}
+
+// ---------- PYQ tracking (indices within CHECK_ITEMS: 1/3/5/7-year ranges) ----------
+const PYQ_INDICES = CHECK_ITEMS.reduce((idxs, label, i) => {
+  if (label.startsWith('PYQs')) idxs.push(i);
+  return idxs;
+}, []);
+
+function chapterHasAllPYQs(arr) {
+  return !!arr && PYQ_INDICES.every(i => arr[i]);
+}
+
+function chapterHasAnyPYQ(arr) {
+  return !!arr && PYQ_INDICES.some(i => arr[i]);
+}
+
+function countChaptersWithAllPYQs() {
+  return Object.values(progressData).filter(chapterHasAllPYQs).length;
+}
+
+function countTotalPYQChecks() {
+  let count = 0;
+  Object.values(progressData).forEach(arr => {
+    if (!arr) return;
+    PYQ_INDICES.forEach(i => { if (arr[i]) count++; });
+  });
+  return count;
+}
+
+const ACHIEVEMENTS = [
+  { id: 'first-step', icon: '🥾', title: 'First Step', desc: 'Tick your first checklist item',
+    check: () => Object.values(progressData).some(arr => arr && arr.some(Boolean)) },
+  { id: 'quest-complete', icon: '🏆', title: 'Zone Secured', desc: `Finish any one chapter (${COMPLETION_THRESHOLD}%+)`,
+    check: () => Object.values(progressData).some(arr => isChapterComplete(arr)) },
+  { id: 'five-chapters', icon: '⭐', title: 'Rising Star', desc: 'Fully complete 5 chapters',
+    check: () => SUBJECTS.reduce((sum, s) => sum + countCompletedChapters(s.chapters), 0) >= 5 },
+  { id: 'halfway', icon: '🔥', title: 'Halfway Hero', desc: 'Reach 50% overall progress',
+    check: () => getOverallPercent() >= 50 },
+  { id: 'physics-champion', icon: '⚛', title: 'Physics Champion', desc: `Complete all ${PHYSICS_CHAPTERS.length} Physics chapters`,
+    check: () => countCompletedChapters(PHYSICS_CHAPTERS) === PHYSICS_CHAPTERS.length },
+  { id: 'chem-champion', icon: '🧪', title: 'Chemistry Champion', desc: `Complete all ${CHEMISTRY_CHAPTERS.length} Chemistry chapters`,
+    check: () => countCompletedChapters(CHEMISTRY_CHAPTERS) === CHEMISTRY_CHAPTERS.length },
+  { id: 'maths-champion', icon: '➗', title: 'Maths Champion', desc: `Complete all ${MATHS_CHAPTERS.length} Maths chapters`,
+    check: () => countCompletedChapters(MATHS_CHAPTERS) === MATHS_CHAPTERS.length },
+  { id: 'jee-master', icon: '👑', title: 'Booyah!', desc: `Complete all ${TOTAL_CHAPTERS} chapters — full syllabus!`,
+    check: () => SUBJECTS.reduce((sum, s) => sum + countCompletedChapters(s.chapters), 0) === TOTAL_CHAPTERS },
+  { id: 'battle-tested', icon: '⚔', title: 'First Blood', desc: 'Log your first chapter test',
+    check: () => chapterTests.length >= 1 },
+  { id: 'consistent-warrior', icon: '🛡', title: 'Consistent Warrior', desc: 'Log 5 chapter tests',
+    check: () => chapterTests.length >= 5 },
+  { id: 'topper-beater', icon: '🎯', title: 'Topper Beater', desc: "Beat the topper's score in a chapter test",
+    check: () => chapterTests.some(t => t.topperscore !== '' && Number(t.myscore) > Number(t.topperscore)) },
+  { id: 'boss-slayer', icon: '🐉', title: 'Airdrop Claimed', desc: 'Log your first full-syllabus mock test',
+    check: () => majorTests.length >= 1 },
+  { id: 'veteran', icon: '🎖', title: 'Veteran', desc: 'Log 5 full-syllabus mock tests',
+    check: () => majorTests.length >= 5 },
+  { id: 'level-25', icon: '💫', title: 'Rank 25', desc: 'Reach Rank 25 Diamond',
+    check: () => getLevelFromPercent(getOverallPercent()) >= 25 },
+  { id: 'perfectionist', icon: '💯', title: 'Perfectionist', desc: 'Fully complete (100%) any one chapter',
+    check: () => Object.values(progressData).some(arr => arr && arr.filter(Boolean).length === CHECK_ITEMS.length) },
+  { id: 'decacomplete', icon: '🏔', title: 'Decacomplete', desc: 'Fully complete 10 chapters',
+    check: () => SUBJECTS.reduce((sum, s) => sum + countCompletedChapters(s.chapters), 0) >= 10 },
+  { id: 'sharpshooter', icon: '🔫', title: 'Sharpshooter', desc: 'Score 90%+ on a chapter test',
+    check: () => chapterTests.some(t => Number(t.questions) > 0 && (Number(t.myscore) / Number(t.questions)) >= 0.9) },
+  { id: 'mock-ace', icon: '🚀', title: 'Mock Ace', desc: 'Score 90%+ on a full-syllabus mock',
+    check: () => majorTests.some(t => Number(t.maxmarks) > 0 && (Number(t.scored) / Number(t.maxmarks)) >= 0.9) },
+  { id: 'ascended', icon: '🌟', title: 'Grandmaster', desc: `Reach the max level (${MAX_LEVEL})`,
+    check: () => getLevelFromPercent(getOverallPercent()) >= MAX_LEVEL },
+
+  // ---- PYQ solving achievements ----
+  { id: 'pyq-rookie', icon: '📜', title: 'PYQ Rookie', desc: 'Tick your first PYQ range in any chapter',
+    check: () => Object.values(progressData).some(chapterHasAnyPYQ) },
+  { id: 'decade-hunter', icon: '🗓', title: 'Decade Hunter', desc: 'Clear all 4 PYQ ranges (1/3/5/7 Yr) for one chapter',
+    check: () => Object.values(progressData).some(chapterHasAllPYQs) },
+  { id: 'pyq-grinder', icon: '📚', title: 'PYQ Grinder', desc: 'Clear all 4 PYQ ranges for 10 chapters',
+    check: () => countChaptersWithAllPYQs() >= 10 },
+  { id: 'pyq-halfway', icon: '🧭', title: 'PYQ Halfway', desc: `Clear all 4 PYQ ranges for ${Math.ceil(TOTAL_CHAPTERS / 2)} chapters`,
+    check: () => countChaptersWithAllPYQs() >= Math.ceil(TOTAL_CHAPTERS / 2) },
+  { id: 'pyq-century', icon: '💯', title: 'Century of PYQs', desc: 'Tick 100 total PYQ boxes across all chapters',
+    check: () => countTotalPYQChecks() >= 100 },
+  { id: 'pyq-master', icon: '👑', title: 'PYQ Master', desc: `Clear all 4 PYQ ranges for every one of ${TOTAL_CHAPTERS} chapters`,
+    check: () => countChaptersWithAllPYQs() === TOTAL_CHAPTERS }
+];
+
+function renderAchievements() {
+  const grid = document.getElementById('achievements-grid');
+  const summary = document.getElementById('achievements-summary');
+  if (!grid) return;
+
+  let unlockedCount = 0;
+  grid.innerHTML = ACHIEVEMENTS.map(a => {
+    const unlocked = a.check();
+    if (unlocked) unlockedCount++;
+    return `
+      <div class="achievement-card ${unlocked ? 'unlocked' : ''}">
+        <div class="achievement-icon">${unlocked ? a.icon : '🔒'}</div>
+        <div class="achievement-title">${a.title}</div>
+        <div class="achievement-desc">${a.desc}</div>
+      </div>`;
+  }).join('');
+
+  if (summary) summary.innerHTML = `<span>${unlockedCount} / ${ACHIEVEMENTS.length}</span> Achievements Unlocked`;
+
+  renderLevelGuide();
+}
+
+function renderLevelGuide() {
+  const statsEl = document.getElementById('levelup-stats');
+  const quickwinsEl = document.getElementById('levelup-quickwins');
+  if (!statsEl || !quickwinsEl) return;
+
+  const xpPerItem = 10;
+  const totalItems = TOTAL_CHAPTERS * CHECK_ITEMS.length;
+  let checkedTotal = 0;
+  const chapterRemaining = [];
+
+  SUBJECTS.forEach(s => s.chapters.forEach(ch => {
+    const checked = (progressData[ch.id] || []).filter(Boolean).length;
+    checkedTotal += checked;
+    const remaining = CHECK_ITEMS.length - checked;
+    if (remaining > 0) chapterRemaining.push({ name: ch.name, remaining });
+  }));
+
+  const percent = totalItems > 0 ? (checkedTotal / totalItems) * 100 : 0;
+  const level = getLevelFromPercent(percent);
+  const totalXP = checkedTotal * xpPerItem;
+  const maxXP = totalItems * xpPerItem;
+
+  if (level >= MAX_LEVEL) {
+    statsEl.innerHTML = `<div class="levelup-maxed">👑 You've hit the max level (${MAX_LEVEL}) — every item is checked. Legendary.</div>`;
+  } else {
+    const nextLevel = level + 1;
+    const nextThresholdPercent = level * LEVEL_STEP_PERCENT;
+    const neededChecked = Math.ceil((nextThresholdPercent / 100) * totalItems);
+    const itemsNeeded = Math.max(0, neededChecked - checkedTotal);
+    const xpNeeded = itemsNeeded * xpPerItem;
+    statsEl.innerHTML = `
+      <div class="levelup-stat-row"><span class="label">Current Level</span><span class="value">${level}</span></div>
+      <div class="levelup-stat-row"><span class="label">XP so far</span><span class="value">${totalXP} / ${maxXP}</span></div>
+      <div class="levelup-stat-row"><span class="label">Items to reach Level ${nextLevel}</span><span class="value">${itemsNeeded} item${itemsNeeded === 1 ? '' : 's'}</span></div>
+      <div class="levelup-stat-row"><span class="label">XP to reach Level ${nextLevel}</span><span class="value">${xpNeeded} XP</span></div>
+      <div class="levelup-stat-row"><span class="label">Every checklist item is worth</span><span class="value">${xpPerItem} XP</span></div>
+    `;
+  }
+
+  chapterRemaining.sort((a, b) => a.remaining - b.remaining);
+  const quickWins = chapterRemaining.slice(0, 5);
+
+  if (quickWins.length === 0) {
+    quickwinsEl.innerHTML = '';
+  } else {
+    quickwinsEl.innerHTML = `
+      <div class="quickwins-title">⚡ Quickest wins — closest to fully complete (fastest XP + a Quest Complete badge)</div>
+      ${quickWins.map(c => `
+        <div class="quickwin-item">
+          <span>${c.name}</span>
+          <span class="remaining">${c.remaining} item${c.remaining === 1 ? '' : 's'} left</span>
+        </div>`).join('')}
+    `;
+  }
+}
+
+function updateSubjectSummary(subject) {
+  let total = 0;
+  subject.chapters.forEach(ch => {
+    const arr = progressData[ch.id] || [];
+    const checked = arr.filter(Boolean).length;
+    total += (checked / CHECK_ITEMS.length) * 100;
+  });
+  const avg = Math.round(total / subject.chapters.length);
+  const bar = document.getElementById(`subject-bar-${subject.key}`);
+  const pct = document.getElementById(`subject-pct-${subject.key}`);
+  if (bar) bar.style.width = avg + '%';
+  if (pct) pct.innerText = avg + '% Overall';
+}
+
+const SUBJECT_META = {
+  physics: { icon: '⚛', label: 'Physics', theme: 'physics-theme' },
+  chemistry: { icon: '🧪', label: 'Chemistry', theme: 'chem-theme' },
+  maths: { icon: '➗', label: 'Maths', theme: 'maths-theme' }
+};
+
+// ---------- Subject Story elements ----------
+const STORY_TEXT = {
+  physics: "Every equation you crack is a battlefield won. From falling apples to spinning galaxies, Physics rewards the relentless — keep firing questions at it.",
+  chemistry: "Reactions, bonds, and reagents — Chemistry is a puzzle box. Each question you solve turns chaos into clean, memorized logic.",
+  maths: "No shortcuts, only sharper blades. Every problem set hones your speed and precision for the final showdown.",
+  advanced: "The Advanced Zone is the endgame — where Mains-level prep gets pressure-tested against harder, trickier questions."
+};
+
+function computeSubjectQuestionTotals() {
+  const totals = { physics: 0, chemistry: 0, maths: 0, advanced: 0 };
+  dailyQuestions.forEach(d => {
+    const n = Number(d.count) || 0;
+    const key = (d.subject || '').toLowerCase();
+    if (totals[key] !== undefined) totals[key] += n;
+    if ((d.exam || '').toLowerCase().includes('advanced')) totals.advanced += n;
+  });
+  return totals;
+}
+
+function renderSubjectStories() {
+  const panel = document.getElementById('story-panel');
+  const totals = computeSubjectQuestionTotals();
+
+  const cardsMeta = [
+    { key: 'physics', theme: 'physics-theme' },
+    { key: 'chemistry', theme: 'chem-theme' },
+    { key: 'maths', theme: 'maths-theme' },
+    { key: 'advanced', theme: 'adv-theme', icon: '🌌', label: 'JEE Advanced' }
+  ];
+
+  if (panel) {
+    panel.innerHTML = cardsMeta.map(m => {
+      const meta = SUBJECT_META[m.key] || { icon: m.icon, label: m.label };
+      return `
+      <div class="story-card ${m.theme}">
+        <div class="story-title">
+          <span>${meta.icon} ${meta.label}</span>
+          <span class="story-count">${totals[m.key]} Qs total</span>
+        </div>
+        <div class="story-text">${STORY_TEXT[m.key]}</div>
+      </div>`;
+    }).join('');
+  }
+
+  ['physics', 'chemistry', 'maths', 'advanced'].forEach(key => {
+    const badge = document.getElementById('tabq-' + key);
+    if (badge) badge.innerText = totals[key];
+  });
+}
+
+function renderCompletionSummary() {
+  const el = document.getElementById('completion-summary');
+  if (!el) return;
+
+  const cards = SUBJECTS.map(s => {
+    const meta = SUBJECT_META[s.key];
+    const completed = countCompletedChapters(s.chapters);
+    return `
+      <div class="completion-card ${meta.theme}">
+        <div class="c-label">${meta.icon} ${meta.label}</div>
+        <div class="c-fraction"><span>${completed}</span> / ${s.chapters.length} Chapters</div>
+      </div>`;
+  });
+
+  const totalCompleted = SUBJECTS.reduce((sum, s) => sum + countCompletedChapters(s.chapters), 0);
+  cards.push(`
+    <div class="completion-card total-theme">
+      <div class="c-label">👑 Total</div>
+      <div class="c-fraction"><span>${totalCompleted}</span> / ${TOTAL_CHAPTERS} Chapters</div>
+    </div>`);
+
+  el.innerHTML = cards.join('');
+  renderSubjectBalanceNudge();
+}
+
+function updateProgress(checkbox) {
+  const label = checkbox.parentElement;
+  label.classList.toggle('checked', checkbox.checked);
+
+  const card = checkbox.closest('.chapter-card');
+  const chapterId = card.getAttribute('data-chapter');
+  const wasGold = card.classList.contains('tier-gold');
+  const boxes = card.querySelectorAll('input[type="checkbox"]');
+  const stateArray = Array.from(boxes).map(cb => cb.checked);
+  progressData[chapterId] = stateArray;
+
+  const percent = renderChapterPercent(chapterId);
+  if (percent >= COMPLETION_THRESHOLD && !wasGold) {
+    showQuestToast(`🏆 Quest Complete: ${getChapterName(chapterId)}!`);
+  }
+
+  const subject = SUBJECTS.find(s => s.chapters.some(ch => ch.id === chapterId));
+  if (subject) updateSubjectSummary(subject);
+  updatePlayerHUD();
+
+  recordActivity();
+  renderWeakSpotRadar();
+  renderDangerZone();
+  saveProgress();
+  syncLeaderboard();
+}
+
+function applyCollapsedToDOM() {
+  document.querySelectorAll('.chapter-card').forEach(card => {
+    const id = card.getAttribute('data-chapter');
+    const isCollapsed = !!collapsedState[id];
+    card.classList.toggle('collapsed', isCollapsed);
+  });
+}
+
+function toggleChapter(chapterId) {
+  collapsedState[chapterId] = !collapsedState[chapterId];
+  const card = document.querySelector(`.chapter-card[data-chapter="${chapterId}"]`);
+  if (card) card.classList.toggle('collapsed', collapsedState[chapterId]);
+  saveCollapsed();
+}
+
+function setAllCollapsed(subjectKey, collapsed) {
+  const subject = SUBJECTS.find(s => s.key === subjectKey) || SUBJECTS_ADV.find(s => s.key === subjectKey);
+  if (!subject) return;
+  subject.chapters.forEach(ch => {
+    collapsedState[ch.id] = collapsed;
+    const card = document.querySelector(`.chapter-card[data-chapter="${ch.id}"]`);
+    if (card) card.classList.toggle('collapsed', collapsed);
+  });
+  saveCollapsed();
+}
+
+// ---------- Tabs / Slide-in Nav Panel ----------
+function openNavPanel() {
+  document.getElementById('nav-panel').classList.add('open');
+  document.getElementById('nav-overlay').classList.add('open');
+  document.getElementById('hamburger-fab').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeNavPanel() {
+  document.getElementById('nav-panel').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
+  document.getElementById('hamburger-fab').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function toggleNavPanel() {
+  const panel = document.getElementById('nav-panel');
+  if (panel.classList.contains('open')) closeNavPanel();
+  else openNavPanel();
+}
+
+function switchTab(tabId, btnEl) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+
+  const btn = btnEl || (window.event && window.event.currentTarget);
+  if (btn) btn.classList.add('active');
+
+  if (tabId === 'leaderboard') renderLeaderboard();
+  closeNavPanel();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeNavPanel();
+});
+
+// ---------- Storage helpers ----------
+function flashStatus(msg) {
+  const el = document.getElementById('saveStatus');
+  el.innerText = msg;
+  setTimeout(() => { if (el.innerText === msg) el.innerText = ''; }, 1500);
+}
+
+async function saveProgress() {
+  try {
+    await localDB.set('jee-progress', JSON.stringify(progressData), false);
+    flashStatus('Progress saved ✓');
+  } catch (e) {
+    console.error('Save error (progress):', e);
+    flashStatus('Save failed — check connection');
+  }
+}
+
+async function saveAdvProgress() {
+  try {
+    await localDB.set('jee-adv-progress', JSON.stringify(advProgressData), false);
+    flashStatus('Progress saved ✓');
+  } catch (e) {
+    console.error('Save error (adv progress):', e);
+    flashStatus('Save failed — check connection');
+  }
+}
+
+async function saveAdvChapterTests() {
+  try {
+    await localDB.set('jee-adv-chapter-tests', JSON.stringify(advChapterTests), false);
+  } catch (e) { console.error('Save error (adv chapter tests):', e); }
+}
+
+async function saveAdvMajorTests() {
+  try {
+    await localDB.set('jee-adv-major-tests', JSON.stringify(advMajorTests), false);
+  } catch (e) { console.error('Save error (adv major tests):', e); }
+}
+
+// ---------- Streak (consistency tracking) ----------
+async function saveStreak() {
+  try {
+    await localDB.set('jee-streak', JSON.stringify(streakData), false);
+  } catch (e) { console.error('Save error (streak):', e); }
+}
+
+function dateStr(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// What the streak SHOULD show right now, without mutating anything — if the last active
+// day wasn't today or yesterday, the streak has lapsed even if the user hasn't acted yet today.
+function computeDisplayStreak() {
+  if (!streakData.lastActiveDate) return 0;
+  const today = dateStr(0);
+  const yesterday = dateStr(-1);
+  if (streakData.lastActiveDate === today || streakData.lastActiveDate === yesterday) {
+    return streakData.currentStreak || 0;
+  }
+  return 0;
+}
+
+function renderStreak() {
+  const streakEl = document.getElementById('hud-streak');
+  const bestEl = document.getElementById('hud-streak-best');
+  const display = computeDisplayStreak();
+  if (streakEl) streakEl.innerText = display > 0 ? `🔥 ${display} Day Streak` : 'Start your streak today!';
+  if (bestEl) bestEl.innerText = `Best: ${streakData.longestStreak || 0}`;
+}
+
+// ---------- Present / Attendance ----------
+async function savePresent() {
+  try {
+    await localDB.set('jee-present-days', JSON.stringify(presentData), false);
+  } catch (e) { console.error('Save error (present):', e); }
+}
+
+function isPresentToday() {
+  return presentData.dates.includes(dateStr(0));
+}
+
+function renderPresentButton() {
+  const btn = document.getElementById('present-btn');
+  const countEl = document.getElementById('present-count');
+  if (btn) {
+    const today = isPresentToday();
+    btn.textContent = today ? '✅ Present Today' : '🙋 Mark Present';
+    btn.classList.toggle('present-done', today);
+    btn.disabled = today;
+  }
+  if (countEl) countEl.innerText = `📅 ${presentData.dates.length} Days Present`;
+}
+
+function markPresent() {
+  const today = dateStr(0);
+  if (presentData.dates.includes(today)) return;
+  presentData.dates.push(today);
+  savePresent();
+  renderPresentButton();
+  recordActivity(); // showing up also counts toward the daily streak
+  flashStatus('Marked present ✓');
+}
+
+// Call this from any real, meaningful action (ticking a box, editing an Advanced field,
+// logging a test). Only the FIRST qualifying action each calendar day advances the streak.
+function recordActivity() {
+  const today = dateStr(0);
+  if (streakData.lastActiveDate === today) return; // already counted today
+
+  const yesterday = dateStr(-1);
+  if (streakData.lastActiveDate === yesterday) {
+    streakData.currentStreak = (streakData.currentStreak || 0) + 1;
+  } else {
+    streakData.currentStreak = 1;
+  }
+  streakData.lastActiveDate = today;
+  streakData.longestStreak = Math.max(streakData.longestStreak || 0, streakData.currentStreak);
+  saveStreak();
+  renderStreak();
+}
+
+// ---------- Weak Spot Radar ----------
+function normalizeTopic(s) {
+  return (s || '').trim().toLowerCase();
+}
+
+function matchTestsForChapter(tests, chapterName) {
+  const norm = normalizeTopic(chapterName);
+  return tests.filter(t => {
+    const tt = normalizeTopic(t.topic);
+    if (!tt || !norm) return false;
+    return tt === norm || norm.includes(tt) || tt.includes(norm);
+  });
+}
+
+function getChapterPercentPure(chapterId) {
+  const arr = progressData[chapterId] || [];
+  return CHECK_ITEMS.length > 0 ? Math.round((arr.filter(Boolean).length / CHECK_ITEMS.length) * 100) : 0;
+}
+
+// Ranks chapters by how urgently they need attention, combining checklist progress with
+// actual test performance (rather than either signal alone).
+function computeWeakSpots(subjects, percentFn, tests, limit) {
+  const rows = [];
+  subjects.forEach(s => {
+    s.chapters.forEach(ch => {
+      const pct = percentFn(ch);
+      const matched = matchTestsForChapter(tests, ch.name);
+      const scored = matched.filter(t => Number(t.questions) > 0);
+      let avgScorePct = null;
+      if (scored.length) {
+        avgScorePct = Math.round(scored.reduce((sum, t) => sum + (Number(t.myscore) / Number(t.questions)) * 100, 0) / scored.length);
+      }
+
+      let score = 0;
+      let reason = '';
+
+      if (avgScorePct !== null) {
+        score += Math.max(0, 100 - avgScorePct) * 2;
+        reason = `${scored.length} test${scored.length === 1 ? '' : 's'} logged, avg ${avgScorePct}%`;
+      }
+      if (pct >= COMPLETION_THRESHOLD && matched.length === 0) {
+        score += 60;
+        reason = 'Checklist complete, 0 tests logged';
+      } else if (pct > 0 && pct < 50 && matched.length === 0) {
+        score += 20;
+        reason = reason || `${pct}% checklist, no tests yet`;
+      }
+
+      if (score > 0) rows.push({ name: ch.name, score, reason });
+    });
+  });
+  rows.sort((a, b) => b.score - a.score);
+  return rows.slice(0, limit || 5);
+}
+
+function renderRadarRows(elId, rows, emptyMessage) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = `<div class="radar-empty">${emptyMessage}</div>`;
+    return;
+  }
+  el.innerHTML = rows.map((r, i) => `
+    <div class="radar-item">
+      <span class="radar-rank">#${i + 1}</span>
+      <span class="radar-name">${r.name}</span>
+      <span class="radar-reason">${r.reason}</span>
+    </div>`).join('');
+}
+
+function renderWeakSpotRadar() {
+  const rows = computeWeakSpots(SUBJECTS, ch => getChapterPercentPure(ch.id), chapterTests, 5);
+  renderRadarRows('weakspot-radar', rows, 'No weak spots detected yet — log some Battle Log tests or update checklists to populate this.');
+}
+
+function renderAdvWeakSpotRadar() {
+  const rows = computeWeakSpots(SUBJECTS_ADV, ch => computeAdvPercent(advProgressData[ch.id] || defaultAdvState()), advChapterTests, 5);
+  renderRadarRows('adv-weakspot-radar', rows, '[ No anomalies detected. Log Advanced tests or update checklists to run a scan. ]');
+}
+
+// ---------- Danger Zone (Mains / normal sections only) ----------
+// A stricter, higher-severity cut of the weak spot logic — only the chapters urgent enough
+// to demand immediate action. The "take a 50-question test" nudge is specific to this zone,
+// and only ever appears for normal (Mains) chapters, never for the Advanced dimension.
+const DANGER_SCORE_THRESHOLD = 60;
+
+function computeDangerZone(subjects, percentFn, tests, limit) {
+  const rows = computeWeakSpots(subjects, percentFn, tests, 999);
+  return rows.filter(r => r.score >= DANGER_SCORE_THRESHOLD).slice(0, limit || 3);
+}
+
+function renderDangerZone() {
+  const rows = computeDangerZone(SUBJECTS, ch => getChapterPercentPure(ch.id), chapterTests, 3).map(r => ({
+    ...r,
+    reason: r.reason,
+    suggestion: '💡 Attempt a 50-question test on this chapter to confirm where it stands.'
+  }));
+  const el = document.getElementById('danger-zone');
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = `<div class="radar-empty">✅ No chapter is in critical shape right now — keep it that way.</div>`;
+    return;
+  }
+  el.innerHTML = rows.map((r, i) => `
+    <div class="radar-item danger-item">
+      <span class="radar-rank">#${i + 1}</span>
+      <span class="radar-name">${r.name}
+        <span class="radar-suggestion">${r.reason}${r.suggestion ? ' — ' + r.suggestion : ''}</span>
+      </span>
+    </div>`).join('');
+}
+
+// ---------- Subject balance nudge (Mains checklist progress only) ----------
+// Warns when one subject is being neglected relative to the others (e.g. Physics 80%,
+// Chemistry 20%) — lopsided prep across Physics/Chemistry/Maths is a common failure mode.
+const BALANCE_GAP_THRESHOLD = 25;
+
+function renderSubjectBalanceNudge() {
+  const el = document.getElementById('balance-nudge');
+  const textEl = document.getElementById('balance-nudge-text');
+  if (!el || !textEl) return;
+
+  const percents = SUBJECTS.map(s => {
+    let total = 0;
+    s.chapters.forEach(ch => {
+      const arr = progressData[ch.id] || [];
+      total += CHECK_ITEMS.length > 0 ? (arr.filter(Boolean).length / CHECK_ITEMS.length) * 100 : 0;
+    });
+    return { key: s.key, label: SUBJECT_META[s.key].label, pct: Math.round(total / s.chapters.length) };
+  });
+
+  const anyProgress = percents.some(p => p.pct > 0);
+  if (!anyProgress) { el.classList.remove('show'); return; }
+
+  const sorted = [...percents].sort((a, b) => b.pct - a.pct);
+  const ahead = sorted[0];
+  const behind = sorted[sorted.length - 1];
+  const gap = ahead.pct - behind.pct;
+
+  if (gap >= BALANCE_GAP_THRESHOLD) {
+    textEl.innerText = `${ahead.label} is at ${ahead.pct}% but ${behind.label} is lagging at ${behind.pct}% — lopsided prep catches up with you. Give ${behind.label} some attention.`;
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+// ---------- Mock test trend chart (Final Zone / Mains mocks only) ----------
+function renderMockTrendChart() {
+  const el = document.getElementById('mock-trend-chart');
+  if (!el) return;
+
+  const points = majorTests
+    .filter(t => t.date && Number(t.maxmarks) > 0)
+    .map(t => ({ date: t.date, pct: Math.round((Number(t.scored) / Number(t.maxmarks)) * 100), name: t.name }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (points.length < 2) {
+    el.innerHTML = `<div class="trend-chart-empty">Log at least 2 Final Zone mocks (with dates) to see your trend line here.</div>`;
+    return;
+  }
+
+  const w = 600, h = 220, padL = 34, padR = 14, padT = 16, padB = 28;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const maxPct = 100, minPct = 0;
+
+  const xFor = i => padL + (i / (points.length - 1)) * plotW;
+  const yFor = pct => padT + plotH - ((pct - minPct) / (maxPct - minPct)) * plotH;
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i).toFixed(1)} ${yFor(p.pct).toFixed(1)}`).join(' ');
+  const gridLines = [0, 25, 50, 75, 100].map(v => `
+    <line x1="${padL}" y1="${yFor(v).toFixed(1)}" x2="${w - padR}" y2="${yFor(v).toFixed(1)}" stroke="var(--border)" stroke-width="1" />
+    <text x="${padL - 6}" y="${(yFor(v) + 3).toFixed(1)}" text-anchor="end" class="trend-tooltip">${v}%</text>`).join('');
+
+  const dots = points.map((p, i) => `
+    <circle class="trend-point" cx="${xFor(i).toFixed(1)}" cy="${yFor(p.pct).toFixed(1)}" r="3.5">
+      <title>${p.name} — ${p.date} — ${p.pct}%</title>
+    </circle>`).join('');
+
+  const xLabels = points.map((p, i) => {
+    if (points.length > 8 && i % Math.ceil(points.length / 8) !== 0 && i !== points.length - 1) return '';
+    return `<text x="${xFor(i).toFixed(1)}" y="${h - 6}" text-anchor="middle" class="trend-tooltip">${p.date.slice(5)}</text>`;
+  }).join('');
+
+  el.innerHTML = `
+    <svg class="trend-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+      ${gridLines}
+      <path d="${linePath}" fill="none" stroke="var(--phys)" stroke-width="2.5" />
+      ${dots}
+      ${xLabels}
+    </svg>`;
+}
+
+// ---------- Printable weekly report ----------
+function exportWeeklyReport() {
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const inLastWeek = dateVal => {
+    if (!dateVal) return false;
+    const d = new Date(dateVal);
+    return !isNaN(d) && d >= weekAgo && d <= now;
+  };
+
+  const subjectRows = SUBJECTS.map(s => {
+    let total = 0;
+    s.chapters.forEach(ch => {
+      const arr = progressData[ch.id] || [];
+      total += CHECK_ITEMS.length > 0 ? (arr.filter(Boolean).length / CHECK_ITEMS.length) * 100 : 0;
+    });
+    const avg = Math.round(total / s.chapters.length);
+    const completed = countCompletedChapters(s.chapters);
+    return { label: SUBJECT_META[s.key].label, avg, completed, of: s.chapters.length };
+  });
+
+  const weekChapterTests = chapterTests.filter(t => inLastWeek(t.date));
+  const weekMajorTests = majorTests.filter(t => inLastWeek(t.date));
+  const weekPresentDays = presentData.dates.filter(inLastWeek);
+
+  const overallPct = Math.round(getOverallPercent());
+  const display = computeDisplayStreak();
+
+  const testRows = weekChapterTests.map(t => `<tr><td>${t.subject}</td><td>${t.topic}</td><td>${t.myscore}/${t.questions}</td><td>${t.date || '-'}</td></tr>`).join('')
+    || `<tr><td colspan="4" style="text-align:center;color:#888;">No chapter tests logged this week</td></tr>`;
+
+  const mockRows = weekMajorTests.map(t => {
+    const pct = t.maxmarks > 0 ? Math.round((Number(t.scored) / Number(t.maxmarks)) * 100) : 0;
+    return `<tr><td>${t.name}</td><td>${t.scored}/${t.maxmarks}</td><td>${pct}%</td><td>${t.date || '-'}</td></tr>`;
+  }).join('') || `<tr><td colspan="4" style="text-align:center;color:#888;">No mock tests logged this week</td></tr>`;
+
+  const subjectRowsHtml = subjectRows.map(s => `<tr><td>${s.label}</td><td>${s.avg}%</td><td>${s.completed} / ${s.of}</td></tr>`).join('');
+
+  const reportHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Weekly Report — ${now.toDateString()}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; padding: 32px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 2px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 20px; }
+  h2 { font-size: 15px; margin: 22px 0 8px 0; border-bottom: 2px solid #333; padding-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  th, td { border: 1px solid #ccc; padding: 6px 8px; font-size: 12px; text-align: left; }
+  th { background: #f0f0f0; }
+  .stat-grid { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+  .stat-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px 16px; min-width: 130px; }
+  .stat-box .label { font-size: 11px; color: #666; }
+  .stat-box .value { font-size: 20px; font-weight: bold; }
+  @media print { button { display: none; } }
+</style></head>
+<body>
+  <h1>🔥 JEE Battle Royale — Weekly Report</h1>
+  <div class="sub">Week ending ${now.toDateString()} (covering ${weekAgo.toDateString()} – ${now.toDateString()})</div>
+
+  <button onclick="window.print()">🖨 Print / Save as PDF</button>
+
+  <h2>Overview</h2>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="label">Overall Syllabus</div><div class="value">${overallPct}%</div></div>
+    <div class="stat-box"><div class="label">Current Streak</div><div class="value">${display} days</div></div>
+    <div class="stat-box"><div class="label">Best Streak</div><div class="value">${streakData.longestStreak || 0} days</div></div>
+    <div class="stat-box"><div class="label">Present This Week</div><div class="value">${weekPresentDays.length} / 7</div></div>
+    <div class="stat-box"><div class="label">Total Days Present</div><div class="value">${presentData.dates.length}</div></div>
+  </div>
+
+  <h2>Subject Progress</h2>
+  <table><thead><tr><th>Subject</th><th>Checklist %</th><th>Chapters Completed</th></tr></thead>
+  <tbody>${subjectRowsHtml}</tbody></table>
+
+  <h2>Chapter Tests Logged This Week</h2>
+  <table><thead><tr><th>Subject</th><th>Topic</th><th>Score</th><th>Date</th></tr></thead>
+  <tbody>${testRows}</tbody></table>
+
+  <h2>Mock Tests Logged This Week</h2>
+  <table><thead><tr><th>Test</th><th>Score</th><th>%</th><th>Date</th></tr></thead>
+  <tbody>${mockRows}</tbody></table>
+
+  <p style="color:#999; font-size:11px; margin-top:24px;">Generated by JEE Battle Royale Tracker on ${now.toLocaleString()}</p>
+</body></html>`;
+
+  const reportWindow = window.open('', '_blank');
+  if (!reportWindow) {
+    flashStatus('Popup blocked — allow popups to view the report');
+    return;
+  }
+  reportWindow.document.open();
+  reportWindow.document.write(reportHtml);
+  reportWindow.document.close();
+}
+
+async function saveChapterTests() {
+  try {
+    await localDB.set('jee-chapter-tests', JSON.stringify(chapterTests), false);
+  } catch (e) { console.error('Save error (chapter tests):', e); }
+}
+
+async function saveMajorTests() {
+  try {
+    await localDB.set('jee-major-tests', JSON.stringify(majorTests), false);
+  } catch (e) { console.error('Save error (major tests):', e); }
+}
+
+async function saveCollapsed() {
+  try {
+    await localDB.set('jee-collapsed', JSON.stringify(collapsedState), false);
+  } catch (e) { console.error('Save error (collapsed state):', e); }
+}
+
+async function loadKey(key) {
+  try {
+    const result = await localDB.get(key, false);
+    return result ? JSON.parse(result.value) : null;
+  } catch (e) {
+    return null; // key doesn't exist yet
+  }
+}
+
+// ---------- Leaderboard (shared storage) ----------
+function slugify(name) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function subjectCompletionPercent(subjectKey) {
+  const subject = SUBJECTS.find(s => s.key === subjectKey);
+  if (!subject) return 0;
+  let total = 0;
+  subject.chapters.forEach(ch => {
+    const arr = progressData[ch.id] || [];
+    total += (arr.filter(Boolean).length / CHECK_ITEMS.length) * 100;
+  });
+  return Math.round(total / subject.chapters.length);
+}
+
+function majorTestStats() {
+  const pcts = majorTests
+    .filter(t => Number(t.maxmarks) > 0)
+    .map(t => (Number(t.scored) / Number(t.maxmarks)) * 100);
+  if (!pcts.length) return { avgPct: null, count: 0, bestPct: null };
+  const avgPct = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+  const bestPct = Math.round(Math.max(...pcts));
+  return { avgPct, count: pcts.length, bestPct };
+}
+
+async function loadPlayerName() {
+  try {
+    const result = await localDB.get('jee-player-name', false);
+    return result ? JSON.parse(result.value) : '';
+  } catch (e) { return ''; }
+}
+
+async function setBattleTag() {
+  const input = document.getElementById('battletag-input');
+  const name = (input.value || '').trim();
+  if (!name) { flashStatus('Enter a name first'); return; }
+  playerName = name;
+  try {
+    await localDB.set('jee-player-name', JSON.stringify(name), false);
+  } catch (e) { console.error('Save error (player name):', e); }
+  updateBattleTagStatus();
+  syncLeaderboard();
+  flashStatus('Battle Tag saved ✓');
+}
+
+function updateBattleTagStatus() {
+  const el = document.getElementById('battletag-status');
+  const input = document.getElementById('battletag-input');
+  if (input && playerName && !input.value) input.value = playerName;
+  if (!el) return;
+  if (playerName) {
+    el.textContent = `Playing as "${playerName}" — synced to the shared leaderboard`;
+    el.classList.add('linked');
+  } else {
+    el.textContent = 'Set a Battle Tag to join the shared leaderboard';
+    el.classList.remove('linked');
+  }
+}
+
+async function syncLeaderboard() {
+  if (!playerName) return;
+  const slug = slugify(playerName);
+  if (!slug) return;
+  const stats = {
+    name: playerName,
+    updatedAt: new Date().toISOString(),
+    overallCompletion: Math.round(getOverallPercent()),
+    subjectCompletion: {
+      physics: subjectCompletionPercent('physics'),
+      chemistry: subjectCompletionPercent('chemistry'),
+      maths: subjectCompletionPercent('maths')
+    },
+    major: majorTestStats(),
+    level: getLevelFromPercent(getOverallPercent())
+  };
+  try {
+    await localDB.set(`lb:${slug}`, JSON.stringify(stats), true);
+  } catch (e) { console.error('Leaderboard sync error:', e); }
+}
+
+async function fetchLeaderboardEntries() {
+  try {
+    const listResult = await localDB.list('lb:', true);
+    const keys = (listResult && listResult.keys) || [];
+    const entries = [];
+    for (const key of keys) {
+      try {
+        const res = await localDB.get(key, true);
+        if (res && res.value) entries.push(JSON.parse(res.value));
+      } catch (e) { /* skip unreadable entry */ }
+    }
+    return entries;
+  } catch (e) {
+    console.error('Leaderboard fetch error:', e);
+    return [];
+  }
+}
+
+function switchLbSubject(subjectKey, btnEl) {
+  lbSubject = subjectKey;
+  document.querySelectorAll('#lb-subject-toggle button').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderLeaderboard();
+}
+
+async function renderLeaderboard() {
+  const overallBody = document.getElementById('lb-overall-body');
+  const subjectBody = document.getElementById('lb-subject-body');
+  if (!overallBody || !subjectBody) return;
+  overallBody.innerHTML = `<tr class="lb-empty-row"><td colspan="6" class="lb-empty">Loading leaderboard…</td></tr>`;
+  subjectBody.innerHTML = `<tr class="lb-empty-row"><td colspan="4" class="lb-empty">Loading leaderboard…</td></tr>`;
+
+  const entries = await fetchLeaderboardEntries();
+
+  if (!entries.length) {
+    overallBody.innerHTML = `<tr><td colspan="6" class="lb-empty">No one has joined the leaderboard yet. Set a Battle Tag above!</td></tr>`;
+    subjectBody.innerHTML = `<tr><td colspan="4" class="lb-empty">No one has joined the leaderboard yet.</td></tr>`;
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  // Overall — ranked by major/mock test average %, players with no mocks sink to the bottom
+  const overallSorted = [...entries].sort((a, b) => {
+    const aHas = a.major && a.major.avgPct !== null;
+    const bHas = b.major && b.major.avgPct !== null;
+    if (aHas && bHas) return b.major.avgPct - a.major.avgPct || b.overallCompletion - a.overallCompletion;
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    return b.overallCompletion - a.overallCompletion;
+  });
+  overallBody.innerHTML = overallSorted.map((e, i) => {
+    const isYou = playerName && e.name === playerName;
+    const rankIcon = medals[i] || (i + 1);
+    const major = e.major || { avgPct: null, count: 0, bestPct: null };
+    return `<tr class="${isYou ? 'lb-you' : ''}">
+      <td class="lb-rank">${rankIcon}</td>
+      <td>${e.name}${isYou ? ' (you)' : ''}</td>
+      <td>${major.avgPct !== null ? major.avgPct + '%' : '—'}</td>
+      <td>${major.count}</td>
+      <td>${major.bestPct !== null ? major.bestPct + '%' : '—'}</td>
+      <td>${e.overallCompletion}%</td>
+    </tr>`;
+  }).join('');
+
+  // Subject-wise — ranked by syllabus completion for the chosen subject
+  const subjectSorted = [...entries].sort((a, b) => {
+    const av = (a.subjectCompletion && a.subjectCompletion[lbSubject]) || 0;
+    const bv = (b.subjectCompletion && b.subjectCompletion[lbSubject]) || 0;
+    return bv - av;
+  });
+  const chapterCount = (SUBJECTS.find(s => s.key === lbSubject) || {}).chapters?.length || 0;
+  subjectBody.innerHTML = subjectSorted.map((e, i) => {
+    const isYou = playerName && e.name === playerName;
+    const rankIcon = medals[i] || (i + 1);
+    const pct = (e.subjectCompletion && e.subjectCompletion[lbSubject]) || 0;
+    const doneChapters = chapterCount > 0 ? Math.round((pct / 100) * chapterCount) : 0;
+    return `<tr class="${isYou ? 'lb-you' : ''}">
+      <td class="lb-rank">${rankIcon}</td>
+      <td>${e.name}${isYou ? ' (you)' : ''}</td>
+      <td>${pct}%</td>
+      <td>~${doneChapters} / ${chapterCount}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- Daily Questions Log ----------
+function renderDailySummary() {
+  const el = document.getElementById('daily-summary');
+  if (!el) return;
+  const today = dateStr(0);
+  const todays = dailyQuestions.filter(d => d.date === today);
+  const bySubject = { Physics: 0, Chemistry: 0, Maths: 0 };
+  todays.forEach(d => { if (bySubject[d.subject] !== undefined) bySubject[d.subject] += Number(d.count) || 0; });
+  const total = bySubject.Physics + bySubject.Chemistry + bySubject.Maths;
+
+  const cardsMeta = [
+    { key: 'Physics', theme: 'physics-theme', icon: '⚛' },
+    { key: 'Chemistry', theme: 'chem-theme', icon: '🧪' },
+    { key: 'Maths', theme: 'maths-theme', icon: '➗' }
+  ];
+  const cards = cardsMeta.map(m => `
+    <div class="completion-card ${m.theme}">
+      <div class="c-label">${m.icon} ${m.key}</div>
+      <div class="c-fraction"><span>${bySubject[m.key]}</span> today</div>
+    </div>`);
+  cards.push(`
+    <div class="completion-card total-theme">
+      <div class="c-label">👑 Total Today</div>
+      <div class="c-fraction"><span>${total}</span> Qs</div>
+    </div>`);
+  el.innerHTML = cards.join('');
+}
+
+function renderDailyQuestions() {
+  const body = document.getElementById('daily-questions-body');
+  if (!body) return;
+  if (!dailyQuestions.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="7">No questions logged yet. Add today's practice above.</td></tr>`;
+  } else {
+    body.innerHTML = dailyQuestions.map((d, i) => `<tr>
+      <td>${d.date || '-'}</td>
+      <td>${d.subject}</td>
+      <td>${d.level}</td>
+      <td>${d.count}</td>
+      <td>${d.exam}</td>
+      <td>${d.note || '-'}</td>
+      <td><button class="del-btn" onclick="deleteDailyQuestion(${i})">✕</button></td>
+    </tr>`).join('');
+  }
+  renderDailySummary();
+  renderSubjectStories();
+}
+
+function addDailyQuestions() {
+  const subject = document.getElementById('dq-subject').value;
+  const level = document.getElementById('dq-level').value;
+  const count = document.getElementById('dq-count').value;
+  const examSelect = document.getElementById('dq-exam').value;
+  const examNote = document.getElementById('dq-exam-note').value.trim();
+  const date = document.getElementById('dq-date').value || dateStr(0);
+  const note = document.getElementById('dq-note').value.trim();
+
+  if (count === '' || Number(count) <= 0) {
+    flashStatus('Please enter how many questions you did');
+    return;
+  }
+
+  const exam = examSelect === 'Other' && examNote ? examNote : examSelect;
+
+  dailyQuestions.unshift({ date, subject, level, count, exam, note });
+  renderDailyQuestions();
+  saveDailyQuestions();
+  recordActivity();
+
+  document.getElementById('dq-count').value = '';
+  document.getElementById('dq-exam-note').value = '';
+  document.getElementById('dq-date').value = '';
+  document.getElementById('dq-note').value = '';
+  flashStatus('Logged ✓');
+}
+
+function deleteDailyQuestion(index) {
+  dailyQuestions.splice(index, 1);
+  renderDailyQuestions();
+  saveDailyQuestions();
+}
+
+async function saveDailyQuestions() {
+  try {
+    await localDB.set('jee-daily-questions', JSON.stringify(dailyQuestions), false);
+  } catch (e) { console.error('Save error (daily questions):', e); }
+}
+
+// ---------- Chapter Test Log ----------
+function renderChapterTests() {
+  const body = document.getElementById('chapter-test-body');
+  if (!chapterTests.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="9">No tests logged yet. Add your first one above.</td></tr>`;
+    return;
+  }
+  body.innerHTML = chapterTests.map((t, i) => {
+    const scoreClass = (Number(t.myscore) >= Number(t.topperscore) * 0.7) ? 'score-good' : 'score-bad';
+    return `<tr>
+      <td>${t.subject}</td>
+      <td>${t.topic}</td>
+      <td>${t.level}</td>
+      <td>${t.questions}</td>
+      <td class="${scoreClass}">${t.myscore}</td>
+      <td>${t.topperscore}</td>
+      <td>${t.date || '-'}</td>
+      <td>${t.note || '-'}</td>
+      <td><button class="del-btn" onclick="deleteChapterTest(${i})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function addChapterTest() {
+  const subject = document.getElementById('ct-subject').value;
+  const topic = document.getElementById('ct-topic').value.trim();
+  const level = document.getElementById('ct-level').value;
+  const questions = document.getElementById('ct-questions').value;
+  const myscore = document.getElementById('ct-myscore').value;
+  const topperscore = document.getElementById('ct-topperscore').value;
+  const date = document.getElementById('ct-date').value;
+  const note = document.getElementById('ct-note').value.trim();
+
+  if (!topic || questions === '' || myscore === '') {
+    flashStatus('Please fill topic, questions, and your score');
+    return;
+  }
+
+  chapterTests.unshift({ subject, topic, level, questions, myscore, topperscore, date, note });
+  renderChapterTests();
+  saveChapterTests();
+  renderAchievements();
+  recordActivity();
+  renderWeakSpotRadar();
+  renderDangerZone();
+  syncLeaderboard();
+
+  document.getElementById('ct-topic').value = '';
+  document.getElementById('ct-questions').value = '';
+  document.getElementById('ct-myscore').value = '';
+  document.getElementById('ct-topperscore').value = '';
+  document.getElementById('ct-date').value = '';
+  document.getElementById('ct-note').value = '';
+}
+
+function deleteChapterTest(index) {
+  chapterTests.splice(index, 1);
+  renderChapterTests();
+  saveChapterTests();
+  renderAchievements();
+  renderWeakSpotRadar();
+  renderDangerZone();
+  syncLeaderboard();
+}
+
+// ---------- Major Test Log ----------
+function renderMajorTests() {
+  const body = document.getElementById('major-test-body');
+  if (!majorTests.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="9">No major mock tests logged yet.</td></tr>`;
+    return;
+  }
+  body.innerHTML = majorTests.map((t, i) => {
+    const pct = t.maxmarks > 0 ? Math.round((Number(t.scored) / Number(t.maxmarks)) * 100) : 0;
+    const scoreClass = pct >= 60 ? 'score-good' : 'score-bad';
+    return `<tr>
+      <td>${t.name}</td>
+      <td>${t.date || '-'}</td>
+      <td>${t.questions}</td>
+      <td>${t.maxmarks}</td>
+      <td>${t.negmarks}</td>
+      <td class="${scoreClass}">${t.scored}</td>
+      <td>${pct}%</td>
+      <td>${t.note || '-'}</td>
+      <td><button class="del-btn" onclick="deleteMajorTest(${i})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function addMajorTest() {
+  const name = document.getElementById('mt-name').value.trim();
+  const date = document.getElementById('mt-date').value;
+  const questions = document.getElementById('mt-questions').value || 75;
+  const maxmarks = document.getElementById('mt-maxmarks').value || 300;
+  const negmarks = document.getElementById('mt-negmarks').value || 0;
+  const scored = document.getElementById('mt-scored').value;
+  const note = document.getElementById('mt-note').value.trim();
+
+  if (!name || scored === '') {
+    flashStatus('Please fill test name and marks obtained');
+    return;
+  }
+
+  majorTests.unshift({ name, date, questions, maxmarks, negmarks, scored, note });
+  renderMajorTests();
+  renderMockTrendChart();
+  saveMajorTests();
+  renderAchievements();
+  recordActivity();
+  syncLeaderboard();
+
+  document.getElementById('mt-name').value = '';
+  document.getElementById('mt-date').value = '';
+  document.getElementById('mt-questions').value = '75';
+  document.getElementById('mt-maxmarks').value = '300';
+  document.getElementById('mt-negmarks').value = '';
+  document.getElementById('mt-scored').value = '';
+  document.getElementById('mt-note').value = '';
+}
+
+function deleteMajorTest(index) {
+  majorTests.splice(index, 1);
+  renderMajorTests();
+  renderMockTrendChart();
+  saveMajorTests();
+  renderAchievements();
+  syncLeaderboard();
+}
+
+// ---------- JEE Advanced Test Log (isolated from main HUD/achievements/leaderboard) ----------
+function renderAdvChapterTests() {
+  const body = document.getElementById('adv-chapter-test-body');
+  if (!body) return;
+  if (!advChapterTests.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="9">No advanced tests logged yet.</td></tr>`;
+    return;
+  }
+  body.innerHTML = advChapterTests.map((t, i) => {
+    const scoreClass = (Number(t.myscore) >= Number(t.topperscore) * 0.7) ? 'score-good' : 'score-bad';
+    return `<tr>
+      <td>${t.subject}</td>
+      <td>${t.topic}</td>
+      <td>${t.level}</td>
+      <td>${t.questions}</td>
+      <td class="${scoreClass}">${t.myscore}</td>
+      <td>${t.topperscore}</td>
+      <td>${t.date || '-'}</td>
+      <td>${t.note || '-'}</td>
+      <td><button class="del-btn" onclick="deleteAdvChapterTest(${i})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function addAdvChapterTest() {
+  const subject = document.getElementById('act-subject').value;
+  const topic = document.getElementById('act-topic').value.trim();
+  const level = document.getElementById('act-level').value;
+  const questions = document.getElementById('act-questions').value;
+  const myscore = document.getElementById('act-myscore').value;
+  const topperscore = document.getElementById('act-topperscore').value;
+  const date = document.getElementById('act-date').value;
+  const note = document.getElementById('act-note').value.trim();
+
+  if (!topic || questions === '' || myscore === '') {
+    flashStatus('Please fill topic, questions, and your score');
+    return;
+  }
+
+  advChapterTests.unshift({ subject, topic, level, questions, myscore, topperscore, date, note });
+  renderAdvChapterTests();
+  saveAdvChapterTests();
+  recordActivity();
+  renderAdvWeakSpotRadar();
+
+  document.getElementById('act-topic').value = '';
+  document.getElementById('act-questions').value = '';
+  document.getElementById('act-myscore').value = '';
+  document.getElementById('act-topperscore').value = '';
+  document.getElementById('act-date').value = '';
+  document.getElementById('act-note').value = '';
+}
+
+function deleteAdvChapterTest(index) {
+  advChapterTests.splice(index, 1);
+  renderAdvChapterTests();
+  saveAdvChapterTests();
+  renderAdvWeakSpotRadar();
+}
+
+function renderAdvMajorTests() {
+  const body = document.getElementById('adv-major-test-body');
+  if (!body) return;
+  if (!advMajorTests.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="9">No advanced mock tests logged yet.</td></tr>`;
+    return;
+  }
+  body.innerHTML = advMajorTests.map((t, i) => {
+    const pct = t.maxmarks > 0 ? Math.round((Number(t.scored) / Number(t.maxmarks)) * 100) : 0;
+    const scoreClass = pct >= 60 ? 'score-good' : 'score-bad';
+    return `<tr>
+      <td>${t.name}</td>
+      <td>${t.date || '-'}</td>
+      <td>${t.questions}</td>
+      <td>${t.maxmarks}</td>
+      <td>${t.negmarks}</td>
+      <td class="${scoreClass}">${t.scored}</td>
+      <td>${pct}%</td>
+      <td>${t.note || '-'}</td>
+      <td><button class="del-btn" onclick="deleteAdvMajorTest(${i})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function addAdvMajorTest() {
+  const name = document.getElementById('amt-name').value.trim();
+  const date = document.getElementById('amt-date').value;
+  const questions = document.getElementById('amt-questions').value || 54;
+  const maxmarks = document.getElementById('amt-maxmarks').value || 360;
+  const negmarks = document.getElementById('amt-negmarks').value || 0;
+  const scored = document.getElementById('amt-scored').value;
+  const note = document.getElementById('amt-note').value.trim();
+
+  if (!name || scored === '') {
+    flashStatus('Please fill test name and marks obtained');
+    return;
+  }
+
+  advMajorTests.unshift({ name, date, questions, maxmarks, negmarks, scored, note });
+  renderAdvMajorTests();
+  saveAdvMajorTests();
+  recordActivity();
+
+  document.getElementById('amt-name').value = '';
+  document.getElementById('amt-date').value = '';
+  document.getElementById('amt-questions').value = '54';
+  document.getElementById('amt-maxmarks').value = '360';
+  document.getElementById('amt-negmarks').value = '';
+  document.getElementById('amt-scored').value = '';
+  document.getElementById('amt-note').value = '';
+}
+
+function deleteAdvMajorTest(index) {
+  advMajorTests.splice(index, 1);
+  renderAdvMajorTests();
+  saveAdvMajorTests();
+}
+
+// ---------- Backup / Restore ----------
+function exportBackup() {
+  const data = { progressData, advProgressData, chapterTests, majorTests, dailyQuestions, advChapterTests, advMajorTests, collapsedState, streakData, presentData, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jee-tracker-backup.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  flashStatus('Backup downloaded ✓');
+}
+
+function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      progressData = data.progressData || {};
+      advProgressData = data.advProgressData || {};
+      chapterTests = data.chapterTests || [];
+      majorTests = data.majorTests || [];
+      dailyQuestions = data.dailyQuestions || [];
+      advChapterTests = data.advChapterTests || [];
+      advMajorTests = data.advMajorTests || [];
+      collapsedState = data.collapsedState || {};
+      streakData = data.streakData || { lastActiveDate: null, currentStreak: 0, longestStreak: 0 };
+      presentData = data.presentData || { dates: [] };
+      applyProgressToDOM();
+      applyAdvProgressToDOM();
+      applyCollapsedToDOM();
+      renderChapterTests();
+      renderMajorTests();
+      renderMockTrendChart();
+      renderDailyQuestions();
+      renderAdvChapterTests();
+      renderAdvMajorTests();
+      renderStreak();
+      renderPresentButton();
+      renderWeakSpotRadar();
+      renderDangerZone();
+      renderAdvWeakSpotRadar();
+      updatePlayerHUD();
+      await saveProgress();
+      await saveAdvProgress();
+      await saveChapterTests();
+      await saveMajorTests();
+      await saveDailyQuestions();
+      await saveAdvChapterTests();
+      await saveAdvMajorTests();
+      await saveCollapsed();
+      await saveStreak();
+      await savePresent();
+      syncLeaderboard();
+      flashStatus('Backup restored ✓');
+    } catch (err) {
+      console.error('Import error:', err);
+      flashStatus('Invalid backup file');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ---------- Init ----------
+async function init() {
+  buildAllCards();
+  buildAllAdvCards();
+
+  const savedProgress = await loadKey('jee-progress');
+  progressData = savedProgress || {};
+  applyProgressToDOM();
+
+  const savedAdvProgress = await loadKey('jee-adv-progress');
+  advProgressData = savedAdvProgress || {};
+
+  const savedCollapsed = await loadKey('jee-collapsed');
+  collapsedState = savedCollapsed || {};
+  // Advanced-zone chapters start collapsed by default unless the user has already toggled them
+  SUBJECTS_ADV.forEach(s => s.chapters.forEach(ch => {
+    if (!(ch.id in collapsedState)) collapsedState[ch.id] = true;
+  }));
+  applyCollapsedToDOM();
+  applyAdvProgressToDOM();
+
+  const savedChapterTests = await loadKey('jee-chapter-tests');
+  chapterTests = savedChapterTests || [];
+  renderChapterTests();
+
+  const savedMajorTests = await loadKey('jee-major-tests');
+  majorTests = savedMajorTests || [];
+  renderMajorTests();
+  renderMockTrendChart();
+
+  const savedDailyQuestions = await loadKey('jee-daily-questions');
+  dailyQuestions = savedDailyQuestions || [];
+  renderDailyQuestions();
+
+  const savedAdvChapterTests = await loadKey('jee-adv-chapter-tests');
+  advChapterTests = savedAdvChapterTests || [];
+  renderAdvChapterTests();
+
+  const savedAdvMajorTests = await loadKey('jee-adv-major-tests');
+  advMajorTests = savedAdvMajorTests || [];
+  renderAdvMajorTests();
+
+  const savedStreak = await loadKey('jee-streak');
+  streakData = savedStreak || { lastActiveDate: null, currentStreak: 0, longestStreak: 0 };
+  renderStreak();
+
+  const savedPresent = await loadKey('jee-present-days');
+  presentData = savedPresent || { dates: [] };
+  renderPresentButton();
+
+  renderWeakSpotRadar();
+  renderDangerZone();
+  renderAdvWeakSpotRadar();
+
+  renderAchievements();
+
+  playerName = (await loadPlayerName()) || '';
+  updateBattleTagStatus();
+  if (playerName) syncLeaderboard();
+}
+
+window.onload = init;
+
+// Register service worker for offline installs (no-op inside claude.ai's artifact
+// sandbox, since it's a different origin/context — this only activates once the
+// app is hosted or packaged as a standalone PWA/APK).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* not hosted / sandboxed preview */ });
+  });
+}
+</script>
+</body>
+</html>
