@@ -91,3 +91,7 @@ The inline JavaScript passes `node --check`. This package has not been tested ag
 
 ## Gemini + A2UI pilot (initial integration)
 The AI & Memory screen now contains an optional Gemini-powered A2UI challenge planner. It requires a separately deployed authenticated Firebase HTTPS Function; no Gemini key is placed in the frontend. See [A2UI-INTEGRATION.md](A2UI-INTEGRATION.md) for setup and deployment. Until the backend URL is configured, the original manual prompt/paste workflow remains available. This pilot does not modify Firestore rules and does not save generated plans until the existing user-confirmed challenge creation flow is used.
+
+
+## Firebase AI Logic + A2UI pilot
+See `A2UI-INTEGRATION.md` for one-time Firebase Console setup and testing. No Gemini API key or backend URL needs to be entered into the live site.

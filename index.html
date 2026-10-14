@@ -240,6 +240,7 @@ button.stat{text-align:left;color:inherit;width:100%;cursor:pointer}
 <header class="top"><div class="top-in">
   <button class="back" id="back" data-act="back" aria-label="Go back"><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Back</button>
   <div class="brand">Challenge Room</div>
+  <button class="btn sec" id="global-undo" data-act="undo-last-change" disabled style="padding:7px 9px;font-size:12px" aria-label="Undo last saved change">Undo</button>
   <button class="notif-btn" id="notif-bell" data-act="open-notifs" aria-label="Notifications"><svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="nbg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse"><stop stop-color="#5B8DEF"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="17" fill="url(#nbg)"/><path d="M18 18h28v6H35v22h-7V24H18z" fill="#081326"/><path d="m42 31 6 6-6 6" fill="none" stroke="#081326" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="notif-dot" id="notif-dot"></span></button>
 </div></header>
 
@@ -337,13 +338,16 @@ button.stat{text-align:left;color:inherit;width:100%;cursor:pointer}
     <h1>AI & Memory</h1><p class="sub">Plan with an AI chat, turn its final output into a challenge, and keep local JSON backups.</p>
     <div class="lbl">Gemini connection setup</div>
     <div class="group" style="padding:14px;margin-bottom:14px">
-      <p class="sub" style="margin-top:0">You can connect the AI backend later without republishing this site. Paste the deployed Firebase Function URL below. This setting is saved on this device only.</p>
-      <label for="a2ui-endpoint-input">Gemini backend URL</label>
-      <input id="a2ui-endpoint-input" type="url" inputmode="url" autocomplete="url" placeholder="https://…cloudfunctions.net/generateA2ui" aria-describedby="a2ui-endpoint-help" style="width:100%;margin-top:6px">
-      <p id="a2ui-endpoint-help" class="meta" style="margin-top:8px">Enter the HTTPS URL of your deployed generateA2ui function, not your Gemini API key.</p>
-      <div class="btns"><button class="btn" data-act="a2ui-save-endpoint">Save connection</button><button class="btn sec" data-act="a2ui-clear-endpoint">Clear</button></div>
-      <p class="sub" id="a2ui-endpoint-status" role="status" aria-live="polite" style="margin-bottom:0">No backend URL configured on this device.</p>
-      <div class="note" style="margin-top:10px">Security: never paste a Gemini API key into this page. Add the key to Firebase Functions Secret Manager using <code>firebase functions:secrets:set GEMINI_API_KEY</code>; the browser only needs the backend URL.</div>
+      <p class="sub" style="margin-top:0">Connect Gemini through Firebase AI Logic. You do not need to paste a Gemini API key or backend URL into this website. You can enable the service later in Firebase Console; once enabled, use the test button below without republishing this site.</p>
+      <div class="btns"><button class="btn sec" data-act="a2ui-open-console">Open Firebase AI Logic setup</button><button class="btn" data-act="a2ui-test">Test Gemini connection</button></div>
+      <p class="sub" id="a2ui-endpoint-status" role="status" aria-live="polite" style="margin-bottom:0">Firebase AI Logic has not been tested on this device.</p>
+      <div class="note" style="margin-top:10px">Setup once in Firebase Console → AI Services → AI Logic → Get started. Choose Gemini Developer API and complete the guided setup. Configure production App Check before making AI available to users. Do not add a Gemini key to this page.</div>
+    </div>
+    <div class="lbl">Undo last saved change</div>
+    <div class="group" style="padding:14px;margin-bottom:14px">
+      <p class="sub" style="margin-top:0">Undo the most recent tracked change saved to Firestore during this open session. Undo is available only if the record has not changed since; this protects newer edits by you or another member.</p>
+      <button class="btn sec" id="undo-last-change" data-act="undo-last-change" disabled>Undo last change</button>
+      <p class="meta" id="undo-status" role="status" aria-live="polite" style="margin-bottom:0">No tracked change to undo yet.</p>
     </div>
     <div class="lbl">Gemini · A2UI planner</div>
     <div class="group" style="padding:14px">
@@ -512,38 +516,36 @@ let DEMO = new URLSearchParams(location.search).has('demo') || location.protocol
 let auth, db, onAuthStateChanged, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, linkWithPopup, signInAnonymously, signOut, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, serverTimestamp, getDocs, query, where;
 let deferredInstallPrompt = null;
 let parsedAIPlan = null;
-// Optional backend URL can be configured in the live AI tab. Never store a Gemini key in the browser.
-const A2UI_ENDPOINT_KEY = 'cr_a2ui_endpoint_v1';
-function getA2uiEndpoint() { return String(ls.get(A2UI_ENDPOINT_KEY, '') || '').trim(); }
+// Firebase AI Logic uses the existing Firebase app configuration; never store a Gemini API key in the browser.
+let firebaseAI = null, getGenerativeModel = null;
+const AI_MODEL_NAME = 'gemini-2.5-flash';
 function initA2uiEndpointSetting() {
-  const input = $('a2ui-endpoint-input');
   const status = $('a2ui-endpoint-status');
-  if (!input || !status) return;
-  input.value = getA2uiEndpoint();
-  status.textContent = input.value ? 'Backend URL configured on this device.' : 'No backend URL configured on this device.';
+  if (status) status.textContent = 'Firebase AI Logic can be enabled later in Firebase Console. No browser key or backend URL is required.';
 }
-function saveA2uiEndpointSetting() {
-  const input = $('a2ui-endpoint-input');
+function openFirebaseAILogicSetup() {
+  window.open('https://console.firebase.google.com/project/' + encodeURIComponent(firebaseConfig.projectId) + '/ai', '_blank', 'noopener');
+}
+async function testFirebaseAI() {
   const status = $('a2ui-endpoint-status');
-  const value = String(input?.value || '').trim().replace(/\/+$/, '');
-  if (!value) { toast('Enter the deployed backend URL first.'); return; }
+  if (status) status.textContent = 'Testing Firebase AI Logic…';
   try {
-    const url = new URL(value);
-    const local = ['localhost', '127.0.0.1'].includes(url.hostname);
-    if (url.protocol !== 'https:' && !(local && url.protocol === 'http:')) throw new Error('Use an HTTPS URL for the live site.');
-    if (url.username || url.password || url.hash) throw new Error('The URL must not contain credentials or a fragment.');
-    if (!/generateA2ui(?:\/)?$/.test(url.pathname)) throw new Error('Use the full URL ending in generateA2ui.');
-    ls.set(A2UI_ENDPOINT_KEY, url.toString().replace(/\/$/, ''));
-    input.value = getA2uiEndpoint();
-    status.textContent = 'Backend URL saved on this device. You can generate a plan when the backend and Gemini secret are deployed.';
-    toast('Gemini backend URL saved');
-  } catch (error) { status.textContent = error.message || 'That URL is not valid.'; }
+    await ensureFirebaseAIReady();
+    const model = getGenerativeModel(firebaseAI, { model: AI_MODEL_NAME, generationConfig: { responseMimeType: 'application/json' } });
+    const result = await model.generateContent('Return exactly this JSON object: {"ok":true}');
+    const parsed = JSON.parse(result.response.text());
+    if (parsed.ok !== true) throw new Error('Unexpected test response.');
+    if (status) status.textContent = 'Gemini connection works. You can generate a challenge plan now.';
+    toast('Gemini connection successful');
+  } catch (error) {
+    const message = String(error?.message || error).slice(0, 220);
+    if (status) status.textContent = 'Not ready yet: ' + message + ' Check Firebase AI Logic setup, model access, and App Check.';
+    toast('Gemini connection test failed');
+  }
 }
-function clearA2uiEndpointSetting() {
-  ls.del(A2UI_ENDPOINT_KEY);
-  const input = $('a2ui-endpoint-input'); if (input) input.value = '';
-  const status = $('a2ui-endpoint-status'); if (status) status.textContent = 'Backend URL cleared from this device.';
-  toast('Gemini backend URL cleared');
+async function ensureFirebaseAIReady() {
+  if (!auth || !db || !firebaseAI || !getGenerativeModel) throw new Error('Firebase is not ready. Open the hosted site and sign in first.');
+  if (!auth.currentUser) throw new Error('Sign in first to use Gemini.');
 }
 
 /* ---------- helpers ---------- */
@@ -554,6 +556,62 @@ const ls = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   del(k) { try { localStorage.removeItem(k); } catch {} }
 };
+let lastUndoRecord = null, undoBusy = false;
+function undoComparable(value) {
+  return JSON.stringify(value, (key, v) => {
+    if (v && typeof v === 'object' && Number.isFinite(v.seconds) && Number.isFinite(v.nanoseconds)) return {__firestoreTimestamp:[v.seconds,v.nanoseconds]};
+    return v;
+  });
+}
+function updateUndoUI(message) {
+  const enabled = !!lastUndoRecord && !undoBusy;
+  ['global-undo','undo-last-change'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = !enabled; });
+  const status = document.getElementById('undo-status');
+  if (status) status.textContent = message || (lastUndoRecord ? 'One saved change can be undone.' : 'No tracked change to undo yet.');
+}
+async function captureUndoable(ref, operation, data, options) {
+  // Undo snapshots are best-effort: never block an otherwise-permitted write just because a read is denied.
+  let beforeSnap = null;
+  try { beforeSnap = await getDoc(ref); } catch {}
+  const beforeExists = !!beforeSnap?.exists();
+  const before = beforeExists ? beforeSnap.data() : null;
+  if (operation === 'set') await setDoc(ref, data, options);
+  else if (operation === 'update') await updateDoc(ref, data);
+  else await deleteDoc(ref);
+  try {
+    const afterSnap = await getDoc(ref);
+    if (!beforeSnap) { lastUndoRecord = null; updateUndoUI('Change saved. Undo is unavailable because the previous state could not be read under the current permissions.'); return; }
+    lastUndoRecord = { ref, beforeExists, before, afterExists: afterSnap.exists(), after: afterSnap.exists() ? afterSnap.data() : null, operation, at: Date.now() };
+    updateUndoUI('Latest saved change is ready to undo. Undo is session-only and will be refused if the record has since changed.');
+  } catch {
+    lastUndoRecord = null;
+    updateUndoUI('Change saved. Undo is unavailable because the current state could not be read under the current permissions.');
+  }
+}
+async function undoableSetDoc(ref, data, options) { return captureUndoable(ref,'set',data,options); }
+async function undoableUpdateDoc(ref, data) { return captureUndoable(ref,'update',data); }
+async function undoableDeleteDoc(ref) { return captureUndoable(ref,'delete'); }
+async function undoLastChange() {
+  if (!lastUndoRecord || undoBusy) return toast('There is no tracked change to undo.');
+  if (!auth?.currentUser) return toast('Sign in again to undo the saved change.');
+  undoBusy = true; updateUndoUI();
+  const record = lastUndoRecord;
+  try {
+    const current = await getDoc(record.ref);
+    if (current.exists() !== record.afterExists || (current.exists() && undoComparable(current.data()) !== undoComparable(record.after))) {
+      throw new Error('This record changed after your last action, so undo was stopped to protect newer data.');
+    }
+    if (record.beforeExists) await setDoc(record.ref, record.before);
+    else if (current.exists()) await deleteDoc(record.ref);
+    lastUndoRecord = null;
+    updateUndoUI('Last saved change was undone.');
+    toast('Last saved change undone');
+    if (typeof renderAll === 'function') renderAll();
+  } catch (error) {
+    updateUndoUI(String(error.message || error).slice(0,220));
+    toast('Undo could not be completed');
+  } finally { undoBusy = false; updateUndoUI(); }
+}
 const ymd = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const today = () => ymd(new Date());
 const dayOff = n => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
@@ -634,11 +692,13 @@ const metaOf = c => ({ targets: (c.targets || []).map(g => ({ id: g.id, text: g.
 
 /* ---------- boot ---------- */
 async function loadFirebase() {
-  const V = 'https://www.gstatic.com/firebasejs/10.12.2/';
-  const [a, b, c] = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-auth.js'), import(V + 'firebase-firestore.js')]);
+  const V = 'https://www.gstatic.com/firebasejs/12.10.0/';
+  const [a, b, c, aiSdk] = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-auth.js'), import(V + 'firebase-firestore.js'), import(V + 'firebase-ai.js')]);
   ({ onAuthStateChanged, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, linkWithPopup, signInAnonymously, signOut } = b);
   ({ doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, serverTimestamp, getDocs, query, where } = c);
   const app = a.initializeApp(firebaseConfig); auth = b.getAuth(app); db = c.getFirestore(app);
+  firebaseAI = aiSdk.getAI(app, { backend: new aiSdk.GoogleAIBackend() });
+  getGenerativeModel = aiSdk.getGenerativeModel;
   await setPersistence(auth, browserLocalPersistence);
 }
 async function start() {
@@ -723,7 +783,7 @@ async function loadMeta() {
 /* ---------- actions ---------- */
 async function ensureMember(code) {
   const ref = doc(db, 'challenges', code, 'members', S.uid);
-  if (!(await getDoc(ref)).exists()) await setDoc(ref, { name: S.name, photo: S.photo || '', about: S.about || '', points: 0, done: {}, notes: {}, joinedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  if (!(await getDoc(ref)).exists()) await undoableSetDoc(ref, { name: S.name, photo: S.photo || '', about: S.about || '', points: 0, done: {}, notes: {}, joinedAt: serverTimestamp(), updatedAt: serverTimestamp() });
 }
 const SHARE_TTL_MS = 10 * 60 * 1000;
 function cleanShareData(data) {
@@ -737,7 +797,7 @@ async function requestProgressAccess(targetUid, targetName, code) {
     const existing = await getDocs(query(collection(db, 'progressAccessRequests'), where('requesterUid', '==', S.uid), where('targetUid', '==', targetUid), where('challengeCode', '==', code), where('status', '==', 'pending')));
     if (!existing.empty) return toast('Request already sent.');
     const ref = doc(collection(db, 'progressAccessRequests'));
-    await setDoc(ref, { requesterUid:S.uid, requesterName:S.name || 'Friend', targetUid, targetName:targetName || 'Friend', challengeCode:code, challengeTitle:S.chal?.title || 'Challenge', status:'pending', createdAt:Date.now(), expiresAt:Date.now()+24*60*60*1000 });
+    await undoableSetDoc(ref, { requesterUid:S.uid, requesterName:S.name || 'Friend', targetUid, targetName:targetName || 'Friend', challengeCode:code, challengeTitle:S.chal?.title || 'Challenge', status:'pending', createdAt:Date.now(), expiresAt:Date.now()+24*60*60*1000 });
     toast('Progress access request sent.');
   } catch (e) { console.error(e); toast('Could not send request. Check Firestore rules.'); }
 }
@@ -748,14 +808,14 @@ async function decideProgressRequest(id, accept, includeNotes=true) {
     if (!snap.exists()) return toast('Request has expired.');
     const r = snap.data();
     if (r.targetUid !== S.uid || r.expiresAt < Date.now()) return toast('This request is no longer valid.');
-    if (!accept) { await updateDoc(rr,{status:'declined',decidedAt:Date.now()}); toast('Request declined.'); return; }
+    if (!accept) { await undoableUpdateDoc(rr,{status:'declined',decidedAt:Date.now()}); toast('Request declined.'); return; }
     const ms = await getDoc(doc(db,'challenges',r.challengeCode,'members',S.uid));
     const cs = await getDoc(doc(db,'challenges',r.challengeCode));
     if (!ms.exists() || !cs.exists()) return toast('Your challenge data is unavailable.');
     const m=ms.data(), c=cs.data(), expiresAt=Date.now()+SHARE_TTL_MS;
     const share = { requestId:id, challengeCode:r.challengeCode, challengeTitle:c.title||r.challengeTitle, ownerUid:S.uid, ownerName:S.name||m.name||'Friend', viewerUid:r.requesterUid, viewerName:r.requesterName, points:Number(m.points)||0, done:m.done||{}, notes: includeNotes?(m.notes||{}):{}, targets:(c.targets||[]).map(t=>({id:t.id,text:t.text,subject:t.subject||'',chapter:t.chapter||'',topic:t.topic||'',points:t.points||0,daily:!!t.daily})), expiresAt, createdAt:Date.now() };
-    await setDoc(doc(db,'temporaryProgressShares',id),share);
-    await updateDoc(rr,{status:'accepted',shareId:id,decidedAt:Date.now(),expiresAt});
+    await undoableSetDoc(doc(db,'temporaryProgressShares',id),share);
+    await undoableUpdateDoc(rr,{status:'accepted',shareId:id,decidedAt:Date.now(),expiresAt});
     toast(`Access granted${includeNotes?'':' (notes hidden)'} for 10 minutes.`);
   } catch(e) { console.error(e); toast('Could not update access. Check Firestore rules.'); }
 }
@@ -771,14 +831,14 @@ async function loadProgressAccess() {
       getDocs(query(collection(db,'temporaryProgressShares'),where('viewerUid','==',S.uid)))
     ]);
     const now=Date.now(), rows=[];
-    for(const d of incoming.docs){const r=d.data(); if(r.expiresAt && r.expiresAt<now){try{await deleteDoc(d.ref)}catch{};continue;} if(r.status==='pending') rows.push(`<div class="li"><div class="grow"><b>${esc(r.requesterName||'Friend')}</b><div class="meta">Wants to view ${esc(r.challengeTitle||'a challenge')}</div></div><button class="btn sm" data-act="progress-accept" data-id="${esc(d.id)}">Accept</button><button class="btn sec sm" data-act="progress-decline" data-id="${esc(d.id)}">Decline</button></div>`); }
+    for(const d of incoming.docs){const r=d.data(); if(r.expiresAt && r.expiresAt<now){try{await undoableDeleteDoc(d.ref)}catch{};continue;} if(r.status==='pending') rows.push(`<div class="li"><div class="grow"><b>${esc(r.requesterName||'Friend')}</b><div class="meta">Wants to view ${esc(r.challengeTitle||'a challenge')}</div></div><button class="btn sm" data-act="progress-accept" data-id="${esc(d.id)}">Accept</button><button class="btn sec sm" data-act="progress-decline" data-id="${esc(d.id)}">Decline</button></div>`); }
     for(const d of outgoing.docs){const r=d.data(); if(r.status==='pending' && (!r.expiresAt||r.expiresAt>now)) rows.push(`<div class="li"><div class="grow"><b>Request to ${esc(r.targetName||'friend')}</b><div class="meta">${esc(r.challengeTitle||'Challenge')} · Pending</div></div></div>`); }
-    for(const d of sharedToMe.docs){const sh=d.data(); if(sh.expiresAt>now) rows.push(`<div class="li"><div class="grow"><b>${esc(sh.ownerName||'Friend')} · ${esc(sh.challengeTitle||'Challenge')}</b><div class="meta">Temporary access · ${Math.max(1,Math.ceil((sh.expiresAt-now)/60000))} min left</div></div><button class="btn sm" data-act="view-shared-progress" data-id="${esc(d.id)}">View</button></div>`); else {try{await deleteDoc(d.ref)}catch{}} }
+    for(const d of sharedToMe.docs){const sh=d.data(); if(sh.expiresAt>now) rows.push(`<div class="li"><div class="grow"><b>${esc(sh.ownerName||'Friend')} · ${esc(sh.challengeTitle||'Challenge')}</b><div class="meta">Temporary access · ${Math.max(1,Math.ceil((sh.expiresAt-now)/60000))} min left</div></div><button class="btn sm" data-act="view-shared-progress" data-id="${esc(d.id)}">View</button></div>`); else {try{await undoableDeleteDoc(d.ref)}catch{}} }
     el.innerHTML=rows.length?rows.join(''):'<div class="li"><div class="grow">No active progress requests or shares.</div></div>';
   } catch(e){ console.error(e); el.innerHTML='<div class="li"><div class="grow">Could not load requests. Update Firestore rules for progressAccessRequests and temporaryProgressShares.</div></div>'; }
 }
 async function viewSharedProgress(id) {
-  try { const s=await getDoc(doc(db,'temporaryProgressShares',id)); if(!s.exists()) return toast('This temporary share has expired.'); const x=s.data(); if(x.viewerUid!==S.uid || x.expiresAt<=Date.now()){try{await deleteDoc(doc(db,'temporaryProgressShares',id))}catch{};return toast('This temporary share has expired.');}
+  try { const s=await getDoc(doc(db,'temporaryProgressShares',id)); if(!s.exists()) return toast('This temporary share has expired.'); const x=s.data(); if(x.viewerUid!==S.uid || x.expiresAt<=Date.now()){try{await undoableDeleteDoc(doc(db,'temporaryProgressShares',id))}catch{};return toast('This temporary share has expired.');}
     const total=x.targets.length, done=Object.keys(x.done||{}).length;
     const lines=x.targets.map(t=>{const keys=Object.keys(x.done||{}).filter(k=>k===t.id||k.startsWith(t.id+'@'));const completed=keys.length>0;return `<div class="li"><div class="grow"><b>${esc(t.text||'Task')}</b><div class="meta">${esc([t.subject,t.chapter,t.topic].filter(Boolean).join(' · '))}</div></div><span class="badge ${completed?'live':''}">${completed?'Completed':'Pending'}</span></div>`}).join('');
     const notes=Object.entries(x.notes||{}).map(([d,n])=>`<div class="li"><div class="grow"><b>${esc(d)}</b><div style="white-space:pre-wrap">${esc(n)}</div></div></div>`).join('');
@@ -788,7 +848,7 @@ async function viewSharedProgress(id) {
 async function saveMe(fields) {
   if (DEMO) { S.me = { ...S.me, ...fields }; demoSync(); return; }
   if (!S.me) await ensureMember(S.chal.id);
-  await updateDoc(doc(db, 'challenges', S.chal.id, 'members', S.uid), { ...fields, updatedAt: serverTimestamp() });
+  await undoableUpdateDoc(doc(db, 'challenges', S.chal.id, 'members', S.uid), { ...fields, updatedAt: serverTimestamp() });
 }
 async function join(raw) {
   if (DEMO) return demoMsg();
@@ -895,7 +955,7 @@ async function toggleIn(code, tid) {
   if (done[key]) delete done[key]; else done[key] = day;
   const points = Object.keys(done).reduce((a, k) => a + (x.targets.find(g => g.id === k.split('@')[0])?.points || 0), 0);
   const prev = S.done[code]; S.done[code] = done; renderHome(); renderMegaHub();
-  try { await ensureMember(code); await updateDoc(doc(db, 'challenges', code, 'members', S.uid), { name: S.name, done, points, updatedAt: serverTimestamp() }); }
+  try { await ensureMember(code); await undoableUpdateDoc(doc(db, 'challenges', code, 'members', S.uid), { name: S.name, done, points, updatedAt: serverTimestamp() }); }
   catch { S.done[code] = prev; renderHome(); renderMegaHub(); toast('Could not save. Check your connection.'); }
 }
 function branchMeta(code) {
@@ -1302,7 +1362,7 @@ async function postAnnouncement() {
   const text = $('ann-text')?.value.trim() || '';
   if (DEMO) return demoMsg();
   try {
-    await updateDoc(doc(db, 'challenges', c.id), { announcement: text, announcementAt: today() });
+    await undoableUpdateDoc(doc(db, 'challenges', c.id), { announcement: text, announcementAt: today() });
     S.chal.announcement = text; S.meta[c.id] = metaOf(S.chal);
     toast(text ? 'Announcement posted.' : 'Announcement cleared.'); renderAdmin(); renderHome();
   } catch { toast('Could not post. Check connection.'); }
@@ -1312,19 +1372,19 @@ async function adminSetEndDate() {
   const c = S.chal; if (!c || c.ownerUid !== S.uid) return;
   const end = $('admin-end')?.value; if (!end || end < c.startDate) return toast('End date must be after start date.');
   if (DEMO) return demoMsg();
-  try { await updateDoc(doc(db, 'challenges', c.id), { endDate: end }); toast('End date updated.'); S.chal.endDate = end; S.meta[c.id] = metaOf(S.chal); renderAll(); } catch { toast('Could not update.'); }
+  try { await undoableUpdateDoc(doc(db, 'challenges', c.id), { endDate: end }); toast('End date updated.'); S.chal.endDate = end; S.meta[c.id] = metaOf(S.chal); renderAll(); } catch { toast('Could not update.'); }
 }
 async function closeChallengeNow() {
   const c = S.chal; if (!c || c.ownerUid !== S.uid) return;
   if (!confirm('End this challenge now? This sets today as the end date.')) return;
   if (DEMO) return demoMsg();
-  try { await updateDoc(doc(db, 'challenges', c.id), { endDate: today(), live: false }); toast('Challenge closed.'); S.chal.endDate = today(); S.chal.live = false; S.meta[c.id] = metaOf(S.chal); renderAll(); } catch { toast('Could not close.'); }
+  try { await undoableUpdateDoc(doc(db, 'challenges', c.id), { endDate: today(), live: false }); toast('Challenge closed.'); S.chal.endDate = today(); S.chal.live = false; S.meta[c.id] = metaOf(S.chal); renderAll(); } catch { toast('Could not close.'); }
 }
 async function kickMember(uid, name) {
   const c = S.chal; if (!c || c.ownerUid !== S.uid) return;
   if (!confirm(`Remove ${name} from this challenge?`)) return;
   if (DEMO) return demoMsg();
-  try { await deleteDoc(doc(db, 'challenges', c.id, 'members', uid)); toast(`${name} removed.`); } catch { toast('Could not remove member.'); }
+  try { await undoableDeleteDoc(doc(db, 'challenges', c.id, 'members', uid)); toast(`${name} removed.`); } catch { toast('Could not remove member.'); }
 }
 async function adminTransfer() {
   const c = S.chal; if (!c || c.ownerUid !== S.uid) return;
@@ -1332,13 +1392,13 @@ async function adminTransfer() {
   const name = S.members.find(m => m.id === uid)?.name || 'Player';
   if (!confirm(`Transfer ownership to ${name}? You will lose admin access.`)) return;
   if (DEMO) return demoMsg();
-  try { await updateDoc(doc(db, 'challenges', c.id), { ownerUid: uid, ownerName: name }); toast('Ownership transferred.'); } catch { toast('Could not transfer.'); }
+  try { await undoableUpdateDoc(doc(db, 'challenges', c.id), { ownerUid: uid, ownerName: name }); toast('Ownership transferred.'); } catch { toast('Could not transfer.'); }
 }
 async function archiveChallenge() {
   const c = S.chal; if (!c || c.ownerUid !== S.uid) return;
   if (!confirm('Archive and freeze this challenge? Scores are locked. This cannot be undone.')) return;
   if (DEMO) return demoMsg();
-  try { await updateDoc(doc(db, 'challenges', c.id), { archived: true, live: false, archivedAt: today() }); toast('Challenge archived and scores frozen.'); } catch { toast('Could not archive.'); }
+  try { await undoableUpdateDoc(doc(db, 'challenges', c.id), { archived: true, live: false, archivedAt: today() }); toast('Challenge archived and scores frozen.'); } catch { toast('Could not archive.'); }
 }
 function exportCSV() {
   const c = S.chal; if (!c) return;
@@ -1364,7 +1424,7 @@ async function cloneChallenge() {
     const start = today(), end = dayOff(dur);
     let code; for (let i = 0; i < 5; i++) { code = genCode(); if (!(await getDoc(doc(db, 'challenges', code))).exists()) break; }
     const title = c.title + ' (rerun)';
-    await setDoc(doc(db, 'challenges', code), { title, desc: c.desc || '', startDate: start, endDate: end, targets: c.targets || [], childChallenges: [], challengeType: c.challengeType || 'standard', discoverable: true, live: true, ownerUid: S.uid, ownerName: S.name, createdAt: serverTimestamp() });
+    await undoableSetDoc(doc(db, 'challenges', code), { title, desc: c.desc || '', startDate: start, endDate: end, targets: c.targets || [], childChallenges: [], challengeType: c.challengeType || 'standard', discoverable: true, live: true, ownerUid: S.uid, ownerName: S.name, createdAt: serverTimestamp() });
     await ensureMember(code); addMine(code, title); watch(code); await loadMeta();
     toast('Challenge cloned! Opening new copy.'); setView('challenge');
   } catch { toast('Could not clone. Check connection.'); }
@@ -1416,18 +1476,18 @@ async function saveNote() {
 }
 async function toggleLive() {
   const c = S.chal; if (!c || c.ownerUid !== S.uid) return; if (DEMO) return demoMsg();
-  try { await updateDoc(doc(db, 'challenges', c.id), { live: !c.live }); toast(c.live ? 'Challenge paused' : 'Challenge is live'); } catch { toast('Could not update.'); }
+  try { await undoableUpdateDoc(doc(db, 'challenges', c.id), { live: !c.live }); toast(c.live ? 'Challenge paused' : 'Challenge is live'); } catch { toast('Could not update.'); }
 }
 async function leave() {
   if (DEMO) return demoMsg();
   const c = S.chal; if (!c || !confirm('Leave this challenge? Your points will be removed.')) return;
-  try { await deleteDoc(doc(db, 'challenges', c.id, 'members', S.uid)); } catch {}
+  try { await undoableDeleteDoc(doc(db, 'challenges', c.id, 'members', S.uid)); } catch {}
   removeMine(c.id); setView('home');
 }
 async function removeChallenge() {
   if (DEMO) return demoMsg();
   const c = S.chal; if (!c || c.ownerUid !== S.uid || !confirm('Delete this challenge for everyone?')) return;
-  try { await deleteDoc(doc(db, 'challenges', c.id)); } catch { toast('Could not delete.'); }
+  try { await undoableDeleteDoc(doc(db, 'challenges', c.id)); } catch { toast('Could not delete.'); }
 }
 async function createChallenge() {
   if (DEMO) return demoMsg();
@@ -1439,7 +1499,7 @@ async function createChallenge() {
   try {
     let code;
     for (let i = 0; i < 5; i++) { code = genCode(); if (!(await getDoc(doc(db, 'challenges', code))).exists()) break; }
-    await setDoc(doc(db, 'challenges', code), { title, desc, startDate, endDate, targets: S.draft, childChallenges: [], challengeType: 'standard', discoverable: true, live: true, ownerUid: S.uid, ownerName: S.name, createdAt: serverTimestamp() });
+    await undoableSetDoc(doc(db, 'challenges', code), { title, desc, startDate, endDate, targets: S.draft, childChallenges: [], challengeType: 'standard', discoverable: true, live: true, ownerUid: S.uid, ownerName: S.name, createdAt: serverTimestamp() });
     await ensureMember(code); addMine(code, title); watch(code);
     S.draft = []; renderDraft(); $('c-title').value = ''; $('c-desc').value = ''; $('t-chapter').value = ''; $('t-topic').value = ''; $('t-text').value = ''; $('created-box').hidden = false;
     const box = $('created-box'); box.hidden = false;
@@ -1505,7 +1565,7 @@ async function saveEditChallenge() {
     fields.targets = targets;
   }
   try {
-    await updateDoc(doc(db, 'challenges', c.id), fields);
+    await undoableUpdateDoc(doc(db, 'challenges', c.id), fields);
     addMine(c.id, title); S.chal = { ...c, ...fields }; S.meta[c.id] = metaOf(S.chal); renderAll(); setView('challenge');
     toast('Challenge changes saved.');
   } catch { toast('Could not save changes. Check your connection and Firestore rules.'); }
@@ -1522,7 +1582,7 @@ async function createMegaChallenge() {
   try {
     let code;
     for (let i = 0; i < 5; i++) { code = genCode(); if (!(await getDoc(doc(db, 'challenges', code))).exists()) break; }
-    await setDoc(doc(db, 'challenges', code), { title, desc, startDate, endDate, targets: [], childChallenges, challengeType: 'mega', discoverable: true, live: true, ownerUid: S.uid, ownerName: S.name, createdAt: serverTimestamp() });
+    await undoableSetDoc(doc(db, 'challenges', code), { title, desc, startDate, endDate, targets: [], childChallenges, challengeType: 'mega', discoverable: true, live: true, ownerUid: S.uid, ownerName: S.name, createdAt: serverTimestamp() });
     await ensureMember(code); addMine(code, title); watch(code); await loadMeta();
     $('mc-title').value = ''; $('mc-desc').value = '';
     document.querySelectorAll('[data-mega-create-code]').forEach(x => { x.checked = false; });
@@ -1552,7 +1612,7 @@ function openName() { $('name-input').value = S.name; if (!$('name-modal').class
 function applyName(v) {
   S.name = v; ls.set('cr_name', v);
   if (DEMO) { demoSync(); return; }
-  S.mine.forEach(m => updateDoc(doc(db, 'challenges', m.code, 'members', S.uid), { name: v, photo: S.photo || '', about: S.about || '' }).catch(() => {}));
+  S.mine.forEach(m => undoableUpdateDoc(doc(db, 'challenges', m.code, 'members', S.uid), { name: v, photo: S.photo || '', about: S.about || '' }).catch(() => {}));
   renderAll();
 }
 async function saveProfileFields(fields) {
@@ -1563,7 +1623,7 @@ async function saveProfileFields(fields) {
   await Promise.all(S.mine.map(async m => {
     try {
       const ref = doc(db, 'challenges', m.code, 'members', S.uid);
-      if ((await getDoc(ref)).exists()) await updateDoc(ref, fields);
+      if ((await getDoc(ref)).exists()) await undoableUpdateDoc(ref, fields);
     } catch {}
   }));
   renderAll();
@@ -2033,6 +2093,7 @@ function renderA2UISurface(messages) {
       el = document.createElement('hr'); el.style.border = '0'; el.style.borderTop = '1px solid var(--line)'; el.style.margin = '10px 0';
     } else if (c.component === 'Button') {
       el = document.createElement('button'); el.type = 'button'; el.className = 'btn' + (c.variant === 'borderless' ? ' sec' : '');
+      const childIds = Array.isArray(c.children) ? c.children : [];
       const child = byId.get(c.child); el.textContent = childIds.length ? '' : String(child?.text || c.label || 'Continue').slice(0, 100);
       const action = c.action?.event?.name;
       if (action !== 'use_plan') { el.disabled = true; el.title = 'This action is not enabled in the pilot.'; }
@@ -2056,34 +2117,40 @@ function renderA2UISurface(messages) {
   const tree = node(surface.root);
   host.replaceChildren(tree); host.hidden = false;
 }
+function makeA2UIPlanMessages(plan) {
+  const components = [
+    { id:'root', component:'Card', children:['heading','summary','tasks','use'] },
+    { id:'heading', component:'Text', variant:'h1', text:plan.title },
+    { id:'summary', component:'Text', text:plan.desc || 'Review this proposed challenge before saving.' },
+    { id:'tasks', component:'List', children:plan.targets.slice(0,20).map((t,i)=>'task'+i) },
+    ...plan.targets.slice(0,20).map((t,i)=>({id:'task'+i,component:'Text',text:(t.daily?'Daily: ':'One-time: ')+t.text})),
+    { id:'use', component:'Button', label:'Use this plan', action:{event:{name:'use_plan'}} }
+  ];
+  return [{version:'v0.9.1',createSurface:{surfaceId:'challenge-planner'}},{version:'v0.9.1',updateComponents:{surfaceId:'challenge-planner',components}}];
+}
 async function generateA2UIPlan() {
   const prompt = $('a2ui-request').value.trim();
   if (!prompt) return toast('Describe the challenge you want to plan first.');
-  const endpoint = getA2uiEndpoint();
-  if (!endpoint) {
-    $('a2ui-status').textContent = 'Not connected yet. Add your deployed generateA2ui backend URL in Gemini connection setup above. The manual AI workflow remains available.';
-    return toast('Gemini backend URL has not been configured.');
-  }
-  if (DEMO || !S.uid || !auth?.currentUser) return toast('Sign in or continue as guest to use Gemini.');
+  if (DEMO || !S.uid || !auth?.currentUser) return toast('Sign in to use Gemini.');
   const button = $('a2ui-generate-btn'); button.disabled = true; button.textContent = 'Generating…';
   $('a2ui-status').textContent = 'Asking Gemini to prepare a plan…'; $('a2ui-surface').hidden = true;
   try {
-    const token = await auth.currentUser.getIdToken();
-    const response = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({prompt})});
-    const result = await response.json().catch(()=>({}));
-    if (!response.ok) throw new Error(result.error || 'Gemini request failed ('+response.status+').');
-    if (!result.challenge || !Array.isArray(result.a2uiMessages)) throw new Error('Backend returned an incomplete A2UI response.');
-    const p = result.challenge;
-    // Reuse the existing parser and challenge validation path before allowing preview/import.
-    const raw = JSON.stringify({title:p.title,description:p.description,startDate:p.startDate,endDate:p.endDate,tasks:p.tasks});
-    window.__crA2UIPlan = parseAIPlan(raw);
-    renderA2UISurface(result.a2uiMessages);
+    await ensureFirebaseAIReady();
+    const model = getGenerativeModel(firebaseAI, { model: AI_MODEL_NAME, generationConfig: { responseMimeType:'application/json' } });
+    const instruction = `You are a careful study challenge planner. Return only valid JSON with keys title, description, startDate, endDate, tasks. Each task has text, subject, chapter, topic, frequency (exactly daily or once), points (integer). Keep tasks practical, never invent personal data, use ISO dates YYYY-MM-DD, include 3-12 tasks, points 10 unless useful otherwise, and make endDate on or after startDate. User request: ${prompt}`;
+    const result = await model.generateContent(instruction);
+    const raw = result.response.text();
+    const parsed = JSON.parse(raw);
+    const planRaw = JSON.stringify({title:parsed.title,description:parsed.description,startDate:parsed.startDate,endDate:parsed.endDate,tasks:parsed.tasks});
+    window.__crA2UIPlan = parseAIPlan(planRaw);
+    renderA2UISurface(makeA2UIPlanMessages(window.__crA2UIPlan));
     $('a2ui-status').textContent = 'Generated successfully. Review the interface, then choose “Use this plan” to open the existing challenge preview. Nothing has been saved yet.';
   } catch (error) {
     $('a2ui-status').textContent = 'Could not generate the interface: ' + String(error.message || error).slice(0,240);
-    toast('Gemini planning failed. Your existing workflow is unchanged.');
+    toast('Gemini planning failed. Check Firebase AI Logic setup and App Check.');
   } finally { button.disabled = false; button.textContent = 'Generate with Gemini'; }
 }
+
 function parseAIPlan(raw) {
   const text = String(raw || '').trim(); if (!text) throw new Error('Paste the AI response first.');
   let obj;
@@ -2130,7 +2197,7 @@ async function createChallengeFromAI() {
   try {
     let code;
     for (let i=0;i<6;i++) { code=genCode(); if (!(await getDoc(doc(db,'challenges',code))).exists()) break; }
-    await setDoc(doc(db,'challenges',code), {title:plan.title.slice(0,60),desc:plan.desc.slice(0,140),startDate:plan.startDate,endDate:plan.endDate,targets:plan.targets.map((t,i)=>({...t,id:'t'+Date.now().toString(36)+i})),childChallenges:[],challengeType:'standard',discoverable:true,live:true,ownerUid:S.uid,ownerName:S.name||'Guest',createdAt:serverTimestamp()});
+    await undoableSetDoc(doc(db,'challenges',code), {title:plan.title.slice(0,60),desc:plan.desc.slice(0,140),startDate:plan.startDate,endDate:plan.endDate,targets:plan.targets.map((t,i)=>({...t,id:'t'+Date.now().toString(36)+i})),childChallenges:[],challengeType:'standard',discoverable:true,live:true,ownerUid:S.uid,ownerName:S.name||'Guest',createdAt:serverTimestamp()});
     await ensureMember(code); addMine(code,plan.title); await loadMeta(); watch(code); parsedAIPlan=null; $('ai-create-btn').disabled=true; $('ai-output').value=''; $('ai-preview').hidden=true; toast('Challenge created from AI plan.'); openChallenge(code);
   } catch { toast('Could not create the challenge. Check Firebase permissions and connection.'); }
 }
@@ -2173,7 +2240,7 @@ async function importMemoryBackup() {
     for(const c of owned) {
       const code=remap[c.code], child=(c.childChallenges||[]).map(ch=>({...ch,code:remap[ch.code]||ch.code}));
       const clean={title:String(c.title||'Restored challenge').slice(0,60),desc:String(c.desc||'').slice(0,140),startDate:c.startDate||today(),endDate:c.endDate||dayOff(13),targets:Array.isArray(c.targets)?c.targets:[],childChallenges:child,challengeType:c.challengeType||'standard',discoverable:c.discoverable!==false,live:c.live!==false,ownerUid:S.uid,ownerName:S.name||'Guest',createdAt:serverTimestamp()};
-      await setDoc(doc(db,'challenges',code),clean); await ensureMember(code); if(c.myMembership && typeof c.myMembership==='object') { const mm=c.myMembership; try { await updateDoc(doc(db,'challenges',code,'members',S.uid), {done:mm.done||{},notes:mm.notes||{},points:Number(mm.points)||0,name:S.name||mm.name||'Guest',photo:S.photo||'',about:S.about||''}); } catch {} } addMine(code,clean.title);
+      await undoableSetDoc(doc(db,'challenges',code),clean); await ensureMember(code); if(c.myMembership && typeof c.myMembership==='object') { const mm=c.myMembership; try { await undoableUpdateDoc(doc(db,'challenges',code,'members',S.uid), {done:mm.done||{},notes:mm.notes||{},points:Number(mm.points)||0,name:S.name||mm.name||'Guest',photo:S.photo||'',about:S.about||''}); } catch {} } addMine(code,clean.title);
     }
     for(const c of docs.filter(c=>!owned.includes(c))) { if(c.code) { try { if((await getDoc(doc(db,'challenges',c.code))).exists()) addMine(c.code,c.title||'Challenge'); } catch {} } }
     await loadMeta();
@@ -2271,8 +2338,9 @@ document.addEventListener('click', e => {
   else if (a === 'google-login') googleLogin();
   else if (a === 'guest-login') guestLogin();
   else if (a === 'a2ui-generate') generateA2UIPlan();
-  else if (a === 'a2ui-save-endpoint') saveA2uiEndpointSetting();
-  else if (a === 'a2ui-clear-endpoint') clearA2uiEndpointSetting();
+  else if (a === 'a2ui-open-console') openFirebaseAILogicSetup();
+  else if (a === 'a2ui-test') testFirebaseAI();
+  else if (a === 'undo-last-change') undoLastChange();
   else if (a === 'copy-ai-start') copy(AI_START_PROMPT, 'Starting prompt copied');
   else if (a === 'copy-ai-final') copy(AI_FINAL_PROMPT, 'Final JSON prompt copied');
   else if (a === 'preview-ai') previewAIOutput();

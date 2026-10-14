@@ -1,4 +1,4 @@
-const CACHE = 'challenge-room-v22-a2ui-live-endpoint';
+const CACHE = 'challenge-room-v23-firebase-ai-undo';
 const SHELL = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
