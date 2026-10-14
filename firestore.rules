@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // Each person's own name and list of challenges, so a Google account follows them to a new phone.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /challenges/{code} {
+      allow get: if request.auth != null;
+      // The Challenge market lists only challenges whose host switched on "public".
+      // Every other challenge cannot be listed, so its 6-character code is the invite.
+      allow list: if request.auth != null && resource.data.public == true;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+
+      match /members/{uid} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Friendly nudges: anyone signed in can send one; only the sender and the receiver can read it.
+      match /nudges/{id} {
+        allow create: if request.auth != null && request.resource.data.from == request.auth.uid
+          && request.resource.data.keys().hasOnly(['from', 'fromName', 'to', 'day', 'at']);
+        allow read: if request.auth != null && (resource.data.to == request.auth.uid || resource.data.from == request.auth.uid);
+      }
+    }
+
+    // Progress requests. A request is created by the person asking, answered by the person asked,
+    // and deleted by the asker's phone as soon as it has received the answer.
+    match /progressRequests/{id} {
+      allow create: if request.auth != null && request.resource.data.from == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['from', 'fromName', 'to', 'toName', 'status', 'createdAt', 'expireAt']);
+      allow read: if request.auth != null && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      allow update: if request.auth != null && resource.data.to == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'data', 'sharedAt']);
+      allow delete: if request.auth != null && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+  }
+}

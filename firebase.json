@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "source": "a2ui-backend",
+    "runtime": "nodejs20",
+    "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+  }
+}
