@@ -1,0 +1,15 @@
+{
+  "name": "challenge-room-a2ui-backend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Authenticated Gemini endpoint for the Challenge Room A2UI pilot",
+  "main": "lib/index.js",
+  "engines": { "node": "20" },
+  "scripts": { "build": "tsc", "serve": "npm run build && firebase emulators:start --only functions", "deploy": "npm run build && firebase deploy --only functions:generateA2ui" },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.4.0"
+  },
+  "devDependencies": { "typescript": "^5.8.3" }
+}
