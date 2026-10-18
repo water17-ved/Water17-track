@@ -103,7 +103,7 @@ body.auth-required .view:not(#view-login){display:none!important}
 .login-wrap{padding-top:min(12vh,72px)}.login-mark{width:64px;height:64px;border-radius:18px;background:linear-gradient(145deg,#5B8DEF,#7C5CFA);display:grid;place-items:center;margin:0 0 22px;box-shadow:0 12px 30px #0004}.login-mark svg{width:38px;height:38px}.google-btn{background:#fff;color:#202124;border-color:#dadce0;font-weight:800}.google-btn svg{width:20px;height:20px;flex:none}.login-card{margin-top:24px;background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:18px}.tracker-link{display:flex;align-items:center;gap:12px;margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:13px;background:var(--s1);text-decoration:none;color:var(--tx)}.tracker-logo{width:46px;height:46px;flex:none}.tracker-link .meta{font-size:13px;color:var(--mut);margin-top:2px}.tracker-link .arrow{margin-left:auto;color:var(--mut);font-size:22px}
 /* Responsive fit: keep the entire app within the phone viewport, even with long labels/cards. */
 html{width:100%;max-width:100%;overflow-x:hidden;}
-body{width:100%;max-width:100%;overflow-x:hidden;}
+body{width:100%;max-width:100%;overflow-x:hidden;}p
 .app,.top-in,main,section.view{width:100%;min-width:0;max-width:520px;}
 .view *,.pane *{min-width:0;}
 .stats{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -507,10 +507,13 @@ button.stat{text-align:left;color:inherit;width:100%;cursor:pointer}
 const firebaseConfig = {
   apiKey: "AIzaSyB5xdHV3mG140tTTZY264WkAPYpKwoXIQU",
   authDomain: "llenge.firebaseapp.com",
+  databaseURL: "https://llenge-default-rtdb.firebaseio.com",
   projectId: "llenge",
   storageBucket: "llenge.firebasestorage.app",
   messagingSenderId: "642859354088",
-  appId: "1:642859354088:web:05bbb2c25ec4c8a4d0465d"
+  appId: "1:642859354088:web:05bbb2c25ec4c8a4d0465d",
+  measurementId: "G-8Z30847MNK"
+};
 };
 let DEMO = new URLSearchParams(location.search).has('demo') || location.protocol === 'file:';
 let auth, db, onAuthStateChanged, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, linkWithPopup, signInAnonymously, signOut, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, serverTimestamp, getDocs, query, where;
