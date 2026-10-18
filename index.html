@@ -548,6 +548,7 @@ async function testFirebaseAI() {
 async function ensureFirebaseAIReady() {
   if (!auth || !db || !firebaseAI || !getGenerativeModel) throw new Error('Firebase is not ready. Open the hosted site and sign in first.');
   if (!auth.currentUser) throw new Error('Sign in first to use Gemini.');
+ const appCheck = initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(6LeUhPUtAAAAAE2voo8hOrDO2HmxZYiXG1bFuXOs), isTokenAutoRefreshEnabled: true });
 }
 
 /* ---------- helpers ---------- */
