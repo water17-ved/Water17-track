@@ -103,7 +103,7 @@ body.auth-required .view:not(#view-login){display:none!important}
 .login-wrap{padding-top:min(12vh,72px)}.login-mark{width:64px;height:64px;border-radius:18px;background:linear-gradient(145deg,#5B8DEF,#7C5CFA);display:grid;place-items:center;margin:0 0 22px;box-shadow:0 12px 30px #0004}.login-mark svg{width:38px;height:38px}.google-btn{background:#fff;color:#202124;border-color:#dadce0;font-weight:800}.google-btn svg{width:20px;height:20px;flex:none}.login-card{margin-top:24px;background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:18px}.tracker-link{display:flex;align-items:center;gap:12px;margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:13px;background:var(--s1);text-decoration:none;color:var(--tx)}.tracker-logo{width:46px;height:46px;flex:none}.tracker-link .meta{font-size:13px;color:var(--mut);margin-top:2px}.tracker-link .arrow{margin-left:auto;color:var(--mut);font-size:22px}
 /* Responsive fit: keep the entire app within the phone viewport, even with long labels/cards. */
 html{width:100%;max-width:100%;overflow-x:hidden;}
-body{width:100%;max-width:100%;overflow-x:hidden;}
+body{width:100%;max-width:100%;overflow-x:hidden;}p
 .app,.top-in,main,section.view{width:100%;min-width:0;max-width:520px;}
 .view *,.pane *{min-width:0;}
 .stats{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -520,7 +520,8 @@ let deferredInstallPrompt = null;
 let parsedAIPlan = null;
 // Firebase AI Logic uses the existing Firebase app configuration; never store a Gemini API key in the browser.
 let firebaseAI = null, getGenerativeModel = null;
-const AI_MODEL_NAME = 'gemini-3.5-flash';
+// Keep the supported Firebase AI Logic model; App Check token errors must be fixed via App Check, not by changing the model name.
+const AI_MODEL_NAME = 'gemini-2.5-flash';
 function initA2uiEndpointSetting() {
   const status = $('a2ui-endpoint-status');
   if (status) status.textContent = 'Firebase AI Logic can be enabled later in Firebase Console. No browser key or backend URL is required.';
@@ -548,7 +549,6 @@ async function testFirebaseAI() {
 async function ensureFirebaseAIReady() {
   if (!auth || !db || !firebaseAI || !getGenerativeModel) throw new Error('Firebase is not ready. Open the hosted site and sign in first.');
   if (!auth.currentUser) throw new Error('Sign in first to use Gemini.');
- const appCheck = initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(6LeUhPUtAAAAAE2voo8hOrDO2HmxZYiXG1bFuXOs), isTokenAutoRefreshEnabled: true });
 }
 
 /* ---------- helpers ---------- */
@@ -696,10 +696,22 @@ const metaOf = c => ({ targets: (c.targets || []).map(g => ({ id: g.id, text: g.
 /* ---------- boot ---------- */
 async function loadFirebase() {
   const V = 'https://www.gstatic.com/firebasejs/12.10.0/';
-  const [a, b, c, aiSdk] = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-auth.js'), import(V + 'firebase-firestore.js'), import(V + 'firebase-ai.js')]);
+  const [a, b, c, aiSdk, appCheckSdk] = await Promise.all([
+    import(V + 'firebase-app.js'),
+    import(V + 'firebase-auth.js'),
+    import(V + 'firebase-firestore.js'),
+    import(V + 'firebase-ai.js'),
+    import(V + 'firebase-app-check.js')
+  ]);
   ({ onAuthStateChanged, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, linkWithPopup, signInAnonymously, signOut } = b);
   ({ doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, serverTimestamp, getDocs, query, where } = c);
-  const app = a.initializeApp(firebaseConfig); auth = b.getAuth(app); db = c.getFirestore(app);
+  const app = a.initializeApp(firebaseConfig);
+  // App Check must be initialized before Firebase AI Logic is used.
+  appCheckSdk.initializeAppCheck(app, {
+    provider: new appCheckSdk.ReCaptchaEnterpriseProvider('6LeUhPUtAAAAAE2voo8hOrDO2HmxZYiXG1bFuXOs'),
+    isTokenAutoRefreshEnabled: true
+  });
+  auth = b.getAuth(app); db = c.getFirestore(app);
   firebaseAI = aiSdk.getAI(app, { backend: new aiSdk.GoogleAIBackend() });
   getGenerativeModel = aiSdk.getGenerativeModel;
   await setPersistence(auth, browserLocalPersistence);
@@ -1029,7 +1041,7 @@ function updateNotifUI() {
   const sheet = $('notif-sheet');
   if (sheet?.classList.contains('open')) renderNotifSheet();
   // re-render challenge board so logo-button states update
-  if (document.querySelector('#view-challenge.on')) renderChallenge();
+  if (document.querySelector('#view-challenge.active')) renderChallenge();
 }
 function renderHomeBanners() {
   const el = $('home-banners'); if (!el) return;

@@ -1,18 +1,15 @@
 {
-  "id": "./",
   "name": "Challenge Room",
-  "short_name": "Challenge",
-  "start_url": "./index.html",
+  "short_name": "Challenge Room",
+  "description": "Plan challenges, track daily and one-time tasks, and review study progress.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
   "background_color": "#0E1526",
   "theme_color": "#0E1526",
-  "prefer_related_applications": false,
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
-  ],
-  "description": "Create challenges, track progress, and compete with friends."
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
 }
