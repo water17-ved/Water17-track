@@ -520,7 +520,7 @@ let deferredInstallPrompt = null;
 let parsedAIPlan = null;
 // Firebase AI Logic uses the existing Firebase app configuration; never store a Gemini API key in the browser.
 let firebaseAI = null, getGenerativeModel = null;
-const AI_MODEL_NAME = 'gemini-2.5-flash';
+const AI_MODEL_NAME = 'gemini-3.5-flash';
 function initA2uiEndpointSetting() {
   const status = $('a2ui-endpoint-status');
   if (status) status.textContent = 'Firebase AI Logic can be enabled later in Firebase Console. No browser key or backend URL is required.';
