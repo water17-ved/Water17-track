@@ -1,17 +1,52 @@
-const CACHE = 'challenge-room-v23-firebase-ai-undo';
-const SHELL = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+/* Challenge Room service worker: network-first for the app shell so updates are not stuck behind a stale cache. */
+const CACHE_NAME = 'challenge-room-shell-v1';
+const SHELL_FILES = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
+
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(SHELL_FILES.map(async path => {
+      try { await cache.add(path); } catch (_) { /* optional shell resource */ }
+    }));
+    await self.skipWaiting();
+  })());
 });
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('challenge-room-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('challenge-room-shell-') && key !== CACHE_NAME).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
-self.addEventListener('message', e => { if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting(); });
-self.addEventListener('fetch', e => {
-  const u = new URL(e.request.url);
-  if (e.request.method !== 'GET' || u.origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => {
-    if (r && r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
-    return r;
-  }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(request);
+        if (fresh.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put('./index.html', fresh.clone()).catch(() => {});
+        }
+        return fresh;
+      } catch (_) {
+        return (await caches.match(request)) || (await caches.match('./index.html')) || Response.error();
+      }
+    })());
+    return;
+  }
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    try {
+      const fresh = await fetch(request);
+      if (fresh.ok) (await caches.open(CACHE_NAME)).put(request, fresh.clone()).catch(() => {});
+      return fresh;
+    } catch (_) { return Response.error(); }
+  })());
 });
